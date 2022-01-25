@@ -1,0 +1,1086 @@
+import os
+import copy
+import json
+import csv
+import numpy as np
+import cv2.cv2 as cv
+from megit.data import get_frm, brt_con, draw_text
+from megit.utils import mk_outdir
+from PyQt5 import QtCore, QtGui, QtWidgets
+from megit.gui.dgn_preproco_ctrl import Ui_ControlViewer
+from megit.gui.dgn_preproco_frmv import Ui_FrameViewer
+from megit.gui.dgn_preproco_load import Ui_MainLoader
+
+
+# Global definitions  -----------------------------------------------------------------------------------------------  #
+# Define a class to handle cross window signals
+class ComSig(QtCore.QObject):
+    frm_ctrl_sig = QtCore.pyqtSignal(int)  # Frame selection operation synchronizer
+    frm_info_sig = QtCore.pyqtSignal(int, str)  # Current frame information messenger
+    mkr_disp_sig = QtCore.pyqtSignal()  # Marker display messenger
+    mkr_ctrl_sig = QtCore.pyqtSignal()  # Marker group control operation messenger
+    mkr_updt_sig = QtCore.pyqtSignal(int)  # Marker item group updating messenger
+    mkr_info_sig = QtCore.pyqtSignal(int, int, str)  # Current marker information messenger
+
+
+# Define global control variables
+com_sig = ComSig()  # Global signals
+vid_cap = cv.VideoCapture()  # OpenCV video capture
+loaded = False  # File loading status flag
+frm = None  # Current frame image
+frm_msg = str()  # Information message of current frame
+frm_list = []  # Frame selection list
+mk_mode = 'NONE'  # Current marking mode
+roi_id = 0  # ROI item unique IDs
+roi_grp = [0]  # ROI item group
+color_palette = {'TGT_C': (0, 158, 115), 'TGT_T': (0, 114, 178), 'TGT_B': (213, 94, 0),
+                 'JUV_C': (204, 121, 167), 'JUV_T': (86, 180, 233), 'JUV_B': (230, 159, 0)}  # Colourblind safe palette
+mkr_vis = True  # Marker visibility flag
+mkr_msg = "No Marker Selected"  # Information message of current label
+
+# Define global process variables
+out_dir = str()  # Output directory
+brt = 0  # Brightness level
+con = 0  # Contrast level
+txt_mark = False  # Define frame index text exist or not
+txt_linc = (255, 255, 255)  # Frame index text colour
+txt_hbkg = True  # Defines text background exist or not
+txt_bkgc = (0, 0, 0)  # Frame index background colour
+txt_size = 1  # Frame index text size
+txt_xval = 0  # Frame index text left corner
+txt_yval = 0  # Frame index text right corner
+exp_typ = False  # Experiment type: True = Juvenile, False = Object
+frm_num = 0  # Number of frames to keep
+frm_esc = []  # Excluded frames
+roi_data = {}  # Process region of interest
+
+
+# Frame selection list operation function
+def update_frame_selection():
+    global frm_num, frm_esc, frm_list
+    count = 0  # Total frame counter
+    # Return selected and unselected indices of a list.
+    for i in range(len(frm_list)):
+        if any(lower <= i <= upper for [lower, upper] in frm_esc):
+            frm_list[i]['keep'] = -1  # -1: Frame to be removed
+        else:
+            if count < frm_num:
+                frm_list[i]['keep'] = 1  # 1: Frame to keep
+            else:
+                frm_list[i]['keep'] = 0  # 0: Extra frame
+            count += 1
+
+
+# Current ROI ID detection function
+def find_roi_id(frm_idx):
+    global roi_id, roi_grp
+    new_id = -1
+    for i in roi_grp:
+        if frm_idx >= i:
+            new_id += 1
+        else:
+            break
+    id_flag = new_id != roi_id
+    roi_id = new_id
+    return id_flag
+
+
+# ROI group operation function
+def update_roi_group(frm_idx):
+    global roi_grp, roi_data
+    in_id = -1  # INIT VAR
+    if frm_idx not in roi_grp:
+        roi_grp.append(frm_idx)
+        roi_grp = sorted(roi_grp)
+        in_id = roi_grp.index(frm_idx)
+        if in_id < len(roi_data):
+            for i in range(len(roi_data) - 1, in_id - 1, -1):
+                roi_data[i+1] = copy.deepcopy(roi_data[i])
+        roi_data[in_id] = {}
+    return in_id
+
+
+# Main process worker class  ----------------------------------------------------------------------------------------  #
+class ProcWorker(QtCore.QObject):
+    finished = QtCore.pyqtSignal()
+    progress = QtCore.pyqtSignal(int)
+
+    def run(self):
+        global out_dir, vid_cap, brt, con, exp_typ, frm_num, frm_list, roi_id, roi_data,\
+            txt_mark, txt_linc, txt_hbkg, txt_bkgc, txt_size, txt_xval, txt_yval
+
+        # Make output directories
+        frm_dir = mk_outdir(os.path.join(out_dir, "frm/"), "Invalid frame output directory!")
+        tgt_dir = mk_outdir(os.path.join(out_dir, "tgt/"), "Invalid target animal scene output directory!")
+        if exp_typ:
+            juv_dir = mk_outdir(os.path.join(out_dir, "juv/"), "Invalid juvenile animal scene output directory!")
+        # Get basic parameters
+        width = int(vid_cap.get(cv.CAP_PROP_FRAME_WIDTH))
+        height = int(vid_cap.get(cv.CAP_PROP_FRAME_HEIGHT))
+
+        # Compute frame crop region
+        roi_crop = {}  # INIT VAR
+        for i in roi_data:
+            tgt_l = width  # INIT/RESET VAR
+            tgt_r = 0  # INIT/RESET VAR
+            tgt_t = height  # INIT/RESET VAR
+            tgt_b = 0  # INIT/RESET VAR
+            juv_l = width  # INIT/RESET VAR
+            juv_r = 0  # INIT/RESET VAR
+            juv_t = height  # INIT/RESET VAR
+            juv_b = 0  # INIT/RESET VAR
+            for k in roi_data[i]:
+                if k.startswith('TGT'):
+                    tgt_l = min(roi_data[i][k]['l'] - 5, tgt_l)
+                    tgt_r = max(roi_data[i][k]['r'] + 5, tgt_r)
+                    tgt_t = min(roi_data[i][k]['t'] - 5, tgt_t)
+                    tgt_b = max(roi_data[i][k]['b'] + 5, tgt_b)
+                if exp_typ and k.startswith('JUV'):
+                    juv_l = min(roi_data[i][k]['l'] - 5, juv_l)
+                    juv_r = max(roi_data[i][k]['r'] + 5, juv_r)
+                    juv_t = min(roi_data[i][k]['t'] - 5, juv_t)
+                    juv_b = max(roi_data[i][k]['b'] + 5, juv_b)
+            if exp_typ:
+                roi_crop[i] = {'TGT': [max(tgt_l, 0), min(tgt_r, width), max(tgt_t, 0), min(tgt_b, height)],
+                               'JUV': [max(juv_l, 0), min(juv_r, width), max(juv_t, 0), min(juv_b, height)]}
+            else:
+                roi_crop[i] = {'TGT': [max(tgt_l, 0), min(tgt_r, width), max(tgt_t, 0), min(tgt_b, height)]}
+
+        # Compute adjusted ROIs
+        roi_adj = {}  # INIT VAR
+        for i in roi_data:
+            roi_adj[i] = {}
+            # Get frame crop/resize information
+            if exp_typ:
+                resize_mat = {'TGT': np.array([256 / (roi_crop[i]['TGT'][1] - roi_crop[i]['TGT'][0]),
+                                               256 / (roi_crop[i]['TGT'][3] - roi_crop[i]['TGT'][2])]),
+                              'JUV': np.array([256 / (roi_crop[i]['JUV'][1] - roi_crop[i]['JUV'][0]),
+                                               256 / (roi_crop[i]['JUV'][3] - roi_crop[i]['JUV'][2])])}
+            else:
+                resize_mat = {'TGT': np.array([256 / (roi_crop[i]['TGT'][1] - roi_crop[i]['TGT'][0]),
+                                               256 / (roi_crop[i]['TGT'][3] - roi_crop[i]['TGT'][2])])}
+            # Compute new ROIs
+            for k in roi_data[i]:
+                if k.startswith('TGT'):
+                    # Compute left-top point
+                    crop_lt = np.array([roi_data[i][k]['l'] - roi_crop[i]['TGT'][0],
+                                        roi_data[i][k]['t'] - roi_crop[i]['TGT'][2]])
+                    new_l, new_t = [int(pt) for pt in (resize_mat['TGT'] * crop_lt)]
+                    # Compute right-bottom point
+                    crop_rb = np.array([roi_data[i][k]['r'] - roi_crop[i]['TGT'][0],
+                                       roi_data[i][k]['b'] - roi_crop[i]['TGT'][2]])
+                    new_r, new_b = [int(pt) for pt in (resize_mat['TGT'] * crop_rb)]
+                    # Passing new data
+                    roi_adj[i][k] = {'l': new_l, 'r': new_r, 't': new_t, 'b': new_b}
+                if exp_typ and k.startswith('JUV'):
+                    # Compute left-top point
+                    crop_lt = np.array([roi_data[i][k]['l'] - roi_crop[i]['JUV'][0],
+                                        roi_data[i][k]['t'] - roi_crop[i]['JUV'][2]])
+                    new_l, new_t = [int(pt) for pt in (resize_mat['JUV'] * crop_lt)]
+                    # Compute right-bottom point
+                    crop_rb = np.array([roi_data[i][k]['r'] - roi_crop[i]['JUV'][0],
+                                       roi_data[i][k]['b'] - roi_crop[i]['JUV'][2]])
+                    new_r, new_b = [int(pt) for pt in (resize_mat['JUV'] * crop_rb)]
+                    # Passing new data
+                    roi_adj[i][k] = {'l': new_l, 'r': new_r, 't': new_t, 'b': new_b}
+
+        # Main process loop
+        count = 0  # INIT VAR
+        frm_feat = []  # INIT VAR
+        tgt_feat = {}  # INIT VAR
+        juv_feat = {}  # INIT VAR
+        keep_typ = {1: 'Y', 0: 'E', -1: 'N'}
+        for i in range(len(frm_list)):
+            # Get current ROI index
+            find_roi_id(i)
+
+            # Get general frame feature
+            feat_tgt_c = "(%d %d %d %d)" % (roi_data[roi_id]['TGT_C']['l'], roi_data[roi_id]['TGT_C']['r'],
+                                            roi_data[roi_id]['TGT_C']['t'], roi_data[roi_id]['TGT_C']['b'])
+            feat_tgt_t = "(%d %d %d %d)" % (roi_data[roi_id]['TGT_T']['l'], roi_data[roi_id]['TGT_T']['r'],
+                                            roi_data[roi_id]['TGT_T']['t'], roi_data[roi_id]['TGT_T']['b'])
+            feat_tgt_b = "(%d %d %d %d)" % (roi_data[roi_id]['TGT_B']['l'], roi_data[roi_id]['TGT_B']['r'],
+                                            roi_data[roi_id]['TGT_B']['t'], roi_data[roi_id]['TGT_B']['b'])
+            if exp_typ:
+                feat_juv_c = "(%d %d %d %d)" % (roi_data[roi_id]['JUV_C']['l'], roi_data[roi_id]['JUV_C']['r'],
+                                                roi_data[roi_id]['JUV_C']['t'], roi_data[roi_id]['JUV_C']['b'])
+                feat_juv_t = "(%d %d %d %d)" % (roi_data[roi_id]['JUV_T']['l'], roi_data[roi_id]['JUV_T']['r'],
+                                                roi_data[roi_id]['JUV_T']['t'], roi_data[roi_id]['JUV_T']['b'])
+                feat_juv_b = "(%d %d %d %d)" % (roi_data[roi_id]['JUV_B']['l'], roi_data[roi_id]['JUV_B']['r'],
+                                                roi_data[roi_id]['JUV_B']['t'], roi_data[roi_id]['JUV_B']['b'])
+                frm_feat.append([i, keep_typ[frm_list[i]['keep']],
+                                 feat_tgt_c, feat_tgt_t, feat_tgt_b, feat_juv_c, feat_juv_t, feat_juv_b])
+            else:
+                frm_feat.append([i, keep_typ[frm_list[i]['keep']],
+                                 feat_tgt_c, feat_tgt_t, feat_tgt_b, 'None', 'None', 'None'])
+
+            # Process and save selected frames
+            if frm_list[i]['keep'] == 1:
+                img = get_frm(vid_cap, i)
+                # Process and write frames
+                img = brt_con(img, brt, con)
+                if txt_mark:
+                    img = draw_text(img, "%06d" % i, txt_xval, txt_yval, txt_size, txt_linc, txt_hbkg, txt_bkgc)
+                cv.imwrite(os.path.join(frm_dir, "frm_%06d.png" % i), img)
+                # Process target animal region
+                tgt_feat[i] = {'C': copy.deepcopy(roi_adj[roi_id]['TGT_C']),
+                               'T': copy.deepcopy(roi_adj[roi_id]['TGT_T']),
+                               'B': copy.deepcopy(roi_adj[roi_id]['TGT_B'])}
+                tgt = img[roi_crop[roi_id]['TGT'][2]:roi_crop[roi_id]['TGT'][3],
+                          roi_crop[roi_id]['TGT'][0]:roi_crop[roi_id]['TGT'][1]]
+                tgt = cv.resize(tgt, (256, 256), interpolation=cv.INTER_AREA)
+                cv.imwrite(os.path.join(tgt_dir, "tgt_%06d.png" % i), tgt)
+                # Process juvenile animal region
+                if exp_typ:
+                    juv_feat[i] = {'C': copy.deepcopy(roi_adj[roi_id]['JUV_C']),
+                                   'T': copy.deepcopy(roi_adj[roi_id]['JUV_T']),
+                                   'B': copy.deepcopy(roi_adj[roi_id]['JUV_B'])}
+                    juv = img[roi_crop[roi_id]['JUV'][2]:roi_crop[roi_id]['JUV'][3],
+                              roi_crop[roi_id]['JUV'][0]:roi_crop[roi_id]['JUV'][1]]
+                    juv = cv.resize(juv, (256, 256), interpolation=cv.INTER_AREA)
+                    cv.imwrite(os.path.join(juv_dir, "juv_%06d.png" % i), juv)
+                # Progress report, set here as this is the most cost section
+                count += 1
+                self.progress.emit(count)
+
+        # Write process details to file
+        with open(os.path.join(out_dir, "frm_prop.csv"), 'w', newline='') as csv_file:
+            writer = csv.writer(csv_file)
+            writer.writerow(['brightness_level', 'contrast_level'])
+            writer.writerow([brt, con])
+            writer.writerow(['index', 'keep_status', 'target_roi', 'target_roi', 'target_roi',
+                             'juvenile_roi', 'juvenile_roi', 'juvenile_roi'])
+            writer.writerow(['index', 'keep_status', 'centre', 'right_top', 'left_bottom',
+                             'centre', 'right_top', 'left_bottom'])
+            writer.writerows(frm_feat)
+
+        with open(os.path.join(tgt_dir, "tgt_prop.json"), 'w', encoding='utf-8') as tgt_file:
+            json.dump(tgt_feat, tgt_file, ensure_ascii=False)
+        if exp_typ:
+            with open(os.path.join(juv_dir, "juv_prop.json"), 'w', encoding='utf-8') as juv_file:
+                json.dump(juv_feat, juv_file, ensure_ascii=False)
+
+        self.finished.emit()
+
+
+# [ControlViewer] Whisker tracking main controller  -----------------------------------------------------------------  #
+class ControlViewer(QtWidgets.QMainWindow, Ui_ControlViewer):
+    tot_frm = 1  # Total frames to label
+    curr_frm = 0  # Frame currently operating
+    curr_cut = 'INIT'  # Current frame removing status
+    curr_row = 0  # Current row in removed frames list
+    curr_a = 0  # Current removing FROM value
+    prog_steps = 0  # Total step for the main function
+
+    def __init__(self, parent=None):
+        super(ControlViewer, self).__init__(parent)
+        self.setupUi(self)
+        self.statusBar.showMessage("Ready!")
+        self.setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
+        # Slider value control
+        self.frameSlider.valueChanged['int'].connect(self.__frame_slider_control)
+        # Brightness and contrast control
+        self.brtSlider.valueChanged['int'].connect(self.__adj_frm_brtcon)
+        self.conSlider.valueChanged['int'].connect(self.__adj_frm_brtcon)
+        # Frame selection controls
+        self.totfrmBox.valueChanged.connect(self.__frame_number_check)
+        self.cutaButton.clicked.connect(self.__cut_from)
+        self.cutbButton.clicked.connect(self.__cut_to)
+        self.frmoutTable.cellChanged.connect(self.__table_input_validation)
+        # Frame tagging control
+        self.mrkMode.currentIndexChanged.connect(self.__set_text_color)
+        self.sizeValue.valueChanged.connect(self.__set_text_size)
+        self.xValue.valueChanged.connect(self.__set_text_loc)
+        self.yValue.valueChanged.connect(self.__set_text_loc)
+        self.mrkCheck.clicked.connect(self.__set_frm_text)
+        # Experiment type control
+        self.objButton.clicked.connect(self.__exp_mode_selection)
+        self.juvButton.clicked.connect(self.__exp_mode_selection)
+        # Marking mode selection control
+        self.tgtBox.currentIndexChanged.connect(self.__tgt_mark_mode_change)
+        self.juvBox.currentIndexChanged.connect(self.__juv_mark_mode_change)
+        self.hidButton.clicked.connect(self.__mrk_disp_ctrl)
+        self.updButton.clicked.connect(self.__mrk_grp_update)
+        # Signal receiver
+        com_sig.frm_info_sig.connect(self.__status_report)
+        com_sig.mkr_info_sig.connect(self.__status_report)
+        com_sig.frm_ctrl_sig.connect(self.__frame_signal)
+        # Main buttons
+        self.startButton.clicked.connect(self.__start_func)
+        self.exitButton.clicked.connect(QtCore.QCoreApplication.instance().quit)
+
+    # Custom signals between different windows
+    def keyPressEvent(self, event):
+        if type(event) == QtGui.QKeyEvent:
+            if event.key() == QtCore.Qt.Key_A or event.key() == QtCore.Qt.Key_Left:
+                com_sig.frm_ctrl_sig.emit(-1)
+            elif event.key() == QtCore.Qt.Key_D or event.key() == QtCore.Qt.Key_Right:
+                com_sig.frm_ctrl_sig.emit(1)
+            else:
+                QtWidgets.QMainWindow.keyPressEvent(self, event)
+        else:
+            QtWidgets.QMainWindow.keyPressEvent(self, event)
+
+    def __status_report(self):
+        self.statusBar.showMessage(mkr_msg + frm_msg)
+
+    def __frame_slider_control(self):
+        global frm_msg, roi_id
+        self.curr_frm = self.frameSlider.value()
+        frm_msg = " | Current frame index: %d" % self.curr_frm
+        com_sig.frm_info_sig.emit(self.curr_frm, frm_msg)
+        # Check if ROI ID changed
+        if find_roi_id(self.curr_frm):
+            com_sig.mkr_ctrl_sig.emit()
+
+    def __frame_signal(self, val):
+        if val == -1:
+            self.sliderValue.stepDown()
+        elif val == 1:
+            self.sliderValue.stepUp()
+        else:
+            pass
+
+    def __adj_frm_brtcon(self):
+        global brt, con
+        brt = self.brtSlider.value()
+        con = self.conSlider.value()
+        com_sig.frm_info_sig.emit(self.curr_frm, frm_msg)
+
+    def __frame_number_check(self):
+        global frm_num, frm_esc
+        frm_num = self.totfrmBox.value()
+        frm_avbl = self.tot_frm - sum([i[1] - i[0] + 1 for i in frm_esc])
+        if frm_avbl < frm_num:
+            self.startButton.setEnabled(False)  # Disable START until requirements meet
+            QtWidgets.QMessageBox.critical(self, "Warning",
+                                           "Insufficient remaining frames!\nPlease verify frame settings.")
+            return False
+        else:
+            if self.curr_cut != 'ASET':  # Check cut list status
+                self.startButton.setEnabled(True)
+            update_frame_selection()  # Update frames
+            return True
+
+    def __cut_from(self):
+        global frm_esc
+        self.frmoutTable.blockSignals(True)
+        item = QtWidgets.QTableWidgetItem(str(self.curr_frm))
+        if self.curr_cut == 'INIT':
+            self.curr_a = self.curr_frm  # Save current FROM value
+            self.frmoutTable.insertRow(0)  # Add initial ROW
+            self.frmoutTable.setItem(0, 0, item)
+            self.curr_cut = 'ASET'
+            self.startButton.setEnabled(False)  # Disable START until B set
+        elif self.curr_cut == 'ASET':
+            if any(lower <= self.curr_frm <= upper for [lower, upper] in frm_esc):
+                QtWidgets.QMessageBox.critical(self, "Warning", "New value should not be within any previous ranges!")
+            else:
+                self.curr_a = self.curr_frm  # Save current FROM value
+                self.frmoutTable.setItem(self.curr_row, 0, item)  # Update current A value
+                self.startButton.setEnabled(False)  # Disable START until B set
+        elif self.curr_cut == 'BSET':
+            if any(lower <= self.curr_frm <= upper for [lower, upper] in frm_esc):
+                QtWidgets.QMessageBox.critical(self, "Warning", "New value should not be within any previous ranges!")
+            else:
+                self.curr_a = self.curr_frm  # Save current FROM value
+                self.frmoutTable.insertRow(self.curr_row)  # Add ROW for a new pair
+                self.frmoutTable.setItem(self.curr_row, 0, item)
+                self.curr_cut = 'ASET'
+                self.startButton.setEnabled(False)  # Disable START until B set
+        self.frmoutTable.blockSignals(False)
+
+    def __cut_to(self):
+        global frm_esc
+        self.frmoutTable.blockSignals(True)
+        item = QtWidgets.QTableWidgetItem(str(self.curr_frm))
+        if self.curr_cut == 'INIT':
+            frm_esc.append([0, self.curr_frm])  # Set global variable
+            if self.__frame_number_check():
+                self.frmoutTable.insertRow(0)  # Add initial ROW
+                self.frmoutTable.setItem(0, 0, QtWidgets.QTableWidgetItem('0'))  # Auto set cut FROM first frame
+                self.frmoutTable.setItem(0, 1, item)
+                self.curr_row += 1  # Increase ROW when an A-B pair is done
+                self.curr_cut = 'BSET'
+                update_frame_selection()  # Update frames
+                self.startButton.setEnabled(True)  # Re-enable START
+            else:
+                frm_esc.pop(-1)
+        elif self.curr_cut == 'ASET':
+            if self.curr_frm < self.curr_a:
+                QtWidgets.QMessageBox.critical(self, "Warning", "New TO value should not be less than current FROM!")
+            elif any(lower <= self.curr_frm <= upper for [lower, upper] in frm_esc):
+                QtWidgets.QMessageBox.critical(self, "Warning", "New value should not be within any previous ranges!")
+            else:
+                frm_esc.append([self.curr_a, self.curr_frm])  # Set global variable
+                if self.__frame_number_check():
+                    self.frmoutTable.setItem(self.curr_row, 1, item)
+                    self.curr_row += 1  # Increase ROW when an A-B list is done
+                    self.curr_cut = 'BSET'
+                    update_frame_selection()  # Update frames
+                    self.startButton.setEnabled(True)  # Re-enable START
+                else:
+                    frm_esc.pop(-1)
+        elif self.curr_cut == 'BSET':
+            if self.curr_frm < self.curr_a:
+                QtWidgets.QMessageBox.critical(self, "Warning", "New TO value should not be less than current FROM!")
+            elif any(lower <= self.curr_frm <= upper for [lower, upper] in frm_esc):
+                QtWidgets.QMessageBox.critical(self, "Warning", "New value should not be within any previous ranges!")
+            else:
+                frm_esc[-1] = [self.curr_a, self.curr_frm]  # Set global variable
+                if self.__frame_number_check():
+                    self.frmoutTable.setItem(self.curr_row - 1, 1, item)  # Update current B value
+                    update_frame_selection()  # Update frames
+                    self.startButton.setEnabled(True)  # Re-enable START
+                else:
+                    frm_esc.pop(-1)
+        self.frmoutTable.blockSignals(False)
+        # Update frame scene
+        com_sig.frm_info_sig.emit(self.curr_frm, frm_msg)
+
+    def __table_input_validation(self, row, col):
+        global frm_esc
+        self.frmoutTable.blockSignals(True)
+        # Check current existing values
+        if row < len(frm_esc):
+            temp_val = frm_esc[row][col]
+        else:
+            if col == 0:
+                temp_val = self.curr_a
+            else:
+                temp_val = None
+        # Check value data format
+        val = self.frmoutTable.item(row, col).text()
+        try:
+            data = int(val)
+        except ValueError:
+            if temp_val is None:
+                self.frmoutTable.setItem(row, col, None)
+            else:
+                self.frmoutTable.setItem(row, col, QtWidgets.QTableWidgetItem(str(temp_val)))
+            QtWidgets.QMessageBox.critical(self, "Error", "Must use integers for frame index!")
+        else:
+            # Get required index
+            if col == 0:
+                prev_row = row - 1
+                prev_col = 1
+                next_row = row
+                next_col = 1
+            else:
+                prev_row = row
+                prev_col = 0
+                next_row = row + 1
+                next_col = 0
+            # Handel with previous value
+            if self.frmoutTable.item(prev_row, prev_col) is None:
+                if data < 0:
+                    QtWidgets.QMessageBox.critical(self, "Warning",
+                                                   "New FROM value should be greater than zero!")
+                    data = temp_val
+            else:
+                prev_val = int(self.frmoutTable.item(prev_row, prev_col).text())
+                if col == 0:  # Data at FROM
+                    if data <= prev_val:
+                        QtWidgets.QMessageBox.critical(self, "Warning",
+                                                       "New FROM value should be greater than previous TO!")
+                        data = temp_val
+                else:  # Data at TO
+                    if data < prev_val:
+                        QtWidgets.QMessageBox.critical(self, "Warning",
+                                                       "New TO value should not be less than current FROM!")
+                        data = temp_val
+            # Handel with next value
+            if self.frmoutTable.item(next_row, next_col) is None:
+                if data >= self.tot_frm:
+                    QtWidgets.QMessageBox.critical(self, "Warning",
+                                                   "New TO value should be less than total frames!")
+                    data = temp_val
+            else:
+                next_val = int(self.frmoutTable.item(next_row, next_col).text())
+                if col == 0:  # Data at FROM
+                    if data > next_val:
+                        QtWidgets.QMessageBox.critical(self, "Warning",
+                                                       "New FROM value should not be greater than current TO!")
+                        data = temp_val
+                else:  # Data at TO
+                    if data >= next_val:
+                        QtWidgets.QMessageBox.critical(self, "Warning",
+                                                       "New TO value should be less than next FROM!")
+                        data = temp_val
+            # Set new data
+            if data is None:
+                self.frmoutTable.setItem(row, col, None)
+            else:
+                self.frmoutTable.setItem(row, col, QtWidgets.QTableWidgetItem(str(data)))
+                # Transfer new data to global/local variables
+                if temp_val is None:  # Assigned to new B value
+                    frm_esc.append([self.curr_a, data])
+                    self.curr_row += 1  # Increase ROW when an A-B list is done
+                    self.curr_cut = 'BSET'
+                    update_frame_selection()  # Update frames
+                    self.startButton.setEnabled(True)  # Re-enable START
+                else:
+                    if row < len(frm_esc):  # Update existing A-B pair
+                        frm_esc[row][col] = data
+                        update_frame_selection()  # Update frames
+                    else:  # Update new A value
+                        self.curr_a = data
+        self.frmoutTable.blockSignals(False)
+        # Update frame scene
+        com_sig.frm_info_sig.emit(self.curr_frm, frm_msg)
+
+    def __set_text_color(self):
+        global txt_linc, txt_bkgc, txt_hbkg
+        if self.mrkMode.currentIndex() == 0:
+            txt_linc = (0, 0, 0)
+            txt_bkgc = None
+            txt_hbkg = False
+        elif self.mrkMode.currentIndex() == 1:
+            txt_linc = (255, 255, 255)
+            txt_bkgc = None
+            txt_hbkg = False
+        elif self.mrkMode.currentIndex() == 2:
+            txt_linc = (0, 0, 0)
+            txt_bkgc = (255, 255, 255)
+            txt_hbkg = True
+        else:
+            txt_linc = (255, 255, 255)
+            txt_bkgc = (0, 0, 0)
+            txt_hbkg = True
+        # Update frame scene
+        com_sig.frm_info_sig.emit(self.curr_frm, frm_msg)
+
+    def __set_text_size(self):
+        global txt_size
+        txt_size = self.sizeValue.value()
+        # Update frame scene
+        com_sig.frm_info_sig.emit(self.curr_frm, frm_msg)
+
+    def __set_text_loc(self):
+        global txt_xval, txt_yval
+        txt_xval = self.xValue.value()
+        txt_yval = self.yValue.value()
+        # Update frame scene
+        com_sig.frm_info_sig.emit(self.curr_frm, frm_msg)
+
+    def __set_frm_text(self):
+        global txt_mark
+        txt_mark = self.mrkCheck.isChecked()
+        self.__set_text_color()
+        self.__set_text_size()
+        self.__set_text_loc()
+        # Update frame scene
+        com_sig.frm_info_sig.emit(self.curr_frm, frm_msg)
+
+    def __exp_mode_selection(self):
+        global exp_typ
+        exp_typ = self.juvButton.isChecked()
+        com_sig.mkr_disp_sig.emit()
+
+    def __tgt_mark_mode_change(self):
+        global mk_mode, mkr_msg
+        # Set current target animal labelling method
+        if self.tgtBox.currentIndex() == 1:
+            mk_mode = 'TGT_C'
+            mkr_msg = "Current Marker: Target - Center"
+            com_sig.mkr_info_sig.emit(0, 0, mk_mode)  # Disable juvenile animal labelling
+            self.juvBox.setCurrentIndex(0)
+        elif self.tgtBox.currentIndex() == 2:
+            mk_mode = 'TGT_T'
+            mkr_msg = "Current Marker: Target - Right/Top"
+            com_sig.mkr_info_sig.emit(0, 1, mk_mode)
+            self.juvBox.setCurrentIndex(0)  # Disable juvenile animal labelling
+        elif self.tgtBox.currentIndex() == 3:
+            mk_mode = 'TGT_B'
+            mkr_msg = "Current Marker: Target - Left/Bottom"
+            com_sig.mkr_info_sig.emit(0, 2, mk_mode)
+            self.juvBox.setCurrentIndex(0)  # Disable juvenile animal labelling
+        else:
+            if self.juvBox.currentIndex() == 0:  # Set signal to 'NONE' if both TGT/JUV disabled
+                mk_mode = 'NONE'
+                mkr_msg = "No Marker Selected"
+                com_sig.mkr_info_sig.emit(-1, -1, mk_mode)
+
+    def __juv_mark_mode_change(self):
+        global mk_mode, mkr_msg
+        # Set current juvenile animal labelling method
+        if self.juvBox.currentIndex() == 1:
+            mk_mode = 'JUV_C'
+            mkr_msg = "Current Marker: Juvenile - Center"
+            com_sig.mkr_info_sig.emit(1, 0, mk_mode)
+            self.tgtBox.setCurrentIndex(0)  # Disable target animal labelling
+        elif self.juvBox.currentIndex() == 2:
+            mk_mode = 'JUV_T'
+            mkr_msg = "Current Marker: Juvenile - Right/Top"
+            com_sig.mkr_info_sig.emit(1, 1, mk_mode)
+            self.tgtBox.setCurrentIndex(0)  # Disable target animal labelling
+        elif self.juvBox.currentIndex() == 3:
+            mk_mode = 'JUV_B'
+            mkr_msg = "Current Marker: Juvenile - Left/Bottom"
+            com_sig.mkr_info_sig.emit(1, 2, mk_mode)
+            self.tgtBox.setCurrentIndex(0)  # Disable target animal labelling
+        else:
+            if self.tgtBox.currentIndex() == 0:  # Set signal to 'NONE' if both TGT/JUV disabled
+                mk_mode = 'NONE'
+                mkr_msg = "No Marker Selected"
+                com_sig.mkr_info_sig.emit(-1, -1, mk_mode)
+
+    def __mrk_disp_ctrl(self):
+        global mkr_vis
+        mkr_vis = not mkr_vis
+        if mkr_vis:
+            self.hidButton.setText("Hide")
+        else:
+            self.hidButton.setText("Show")
+        com_sig.mkr_disp_sig.emit()
+
+    def __mrk_grp_update(self):
+        global mkr_vis, roi_id, roi_grp
+        if not mkr_vis:
+            self.__mrk_disp_ctrl()
+        com_sig.mkr_updt_sig.emit(update_roi_group(self.curr_frm))
+        find_roi_id(self.curr_frm)
+        com_sig.mkr_ctrl_sig.emit()
+
+    # Progress display
+    def __prog_disp(self, val):
+        percent = int(val / self.prog_steps * 100)
+        self.progressBar.setValue(percent)
+
+    # Main process function
+    def __main_proc_task(self):
+        self.progressBar.setValue(0)
+        # Assign thread and worker
+        self.thread = QtCore.QThread()
+        self.worker = ProcWorker()
+        self.worker.moveToThread(self.thread)
+        # Connect signals and slots
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.progress.connect(self.__prog_disp)
+        # Start the thread
+        self.thread.start()
+        # Get switchable controls status
+        mk_flag = self.mrkMode.isEnabled()
+        sz_flag = self.sizeValue.isEnabled()
+        x_flag = self.xValue.isEnabled()
+        y_flag = self.yValue.isEnabled()
+        jv_flag = self.juvBox.isEnabled()
+        # Disable Controls
+        self.frameSlider.setEnabled(False)
+        self.sliderValue.setEnabled(False)
+        self.brtSlider.setEnabled(False)
+        self.brtValue.setEnabled(False)
+        self.conSlider.setEnabled(False)
+        self.conValue.setEnabled(False)
+        self.totfrmBox.setEnabled(False)
+        self.cutaButton.setEnabled(False)
+        self.cutbButton.setEnabled(False)
+        self.mrkCheck.setEnabled(False)
+        self.mrkMode.setEnabled(False)
+        self.sizeValue.setEnabled(False)
+        self.xValue.setEnabled(False)
+        self.yValue.setEnabled(False)
+        self.objButton.setEnabled(False)
+        self.juvButton.setEnabled(False)
+        self.tgtBox.setEnabled(False)
+        self.juvBox.setEnabled(False)
+        self.hidButton.setEnabled(False)
+        self.updButton.setEnabled(False)
+        self.prevButton.setEnabled(False)
+        self.nextButton.setEnabled(False)
+        # Final resets
+        self.thread.finished.connect(lambda: self.frameSlider.setEnabled(True))
+        self.thread.finished.connect(lambda: self.sliderValue.setEnabled(True))
+        self.thread.finished.connect(lambda: self.brtSlider.setEnabled(True))
+        self.thread.finished.connect(lambda: self.brtValue.setEnabled(True))
+        self.thread.finished.connect(lambda: self.conSlider.setEnabled(True))
+        self.thread.finished.connect(lambda: self.conValue.setEnabled(True))
+        self.thread.finished.connect(lambda: self.totfrmBox.setEnabled(True))
+        self.thread.finished.connect(lambda: self.cutaButton.setEnabled(True))
+        self.thread.finished.connect(lambda: self.cutbButton.setEnabled(True))
+        self.thread.finished.connect(lambda: self.mrkCheck.setEnabled(True))
+        self.thread.finished.connect(lambda: self.mrkMode.setEnabled(mk_flag))
+        self.thread.finished.connect(lambda: self.sizeValue.setEnabled(sz_flag))
+        self.thread.finished.connect(lambda: self.xValue.setEnabled(x_flag))
+        self.thread.finished.connect(lambda: self.yValue.setEnabled(y_flag))
+        self.thread.finished.connect(lambda: self.objButton.setEnabled(True))
+        self.thread.finished.connect(lambda: self.juvButton.setEnabled(True))
+        self.thread.finished.connect(lambda: self.tgtBox.setEnabled(True))
+        self.thread.finished.connect(lambda: self.juvBox.setEnabled(jv_flag))
+        self.thread.finished.connect(lambda: self.hidButton.setEnabled(True))
+        self.thread.finished.connect(lambda: self.updButton.setEnabled(True))
+        self.thread.finished.connect(lambda: self.prevButton.setEnabled(True))
+        self.thread.finished.connect(lambda: self.nextButton.setEnabled(True))
+
+    # Main process function
+    def __start_func(self):
+        global frm_num, exp_typ, roi_grp, roi_data
+        # Checking missing ROIs
+        err_flag = False
+        if len(roi_data) == 0:
+            err_flag = True
+            if exp_typ:
+                err_msg = "Please define ROIs for both Target and Juvenile animals!"
+            else:
+                err_msg = "Please define ROIs for Target animal!"
+        else:
+            err_msg = "Missing following ROIs:\n"
+            err_dic = {'JUV_B': "Juvenile - Left/Bottom", 'JUV_C': "Juvenile - Centre", 'JUV_T': "Juvenile - Right/Top",
+                       'TGT_B': "Target - Left/Bottom", 'TGT_C': "Target - Centre", 'TGT_T': "Target - Right/Top"}
+            for i in roi_data:
+                if exp_typ:
+                    for k in ['TGT_C', 'TGT_T', 'TGT_B', 'JUV_C', 'JUV_T', 'JUV_B']:
+                        if k not in roi_data[i]:
+                            err_flag = True
+                            err_msg += "  Frame - %d : %s\n" % (roi_grp[i], err_dic[k])
+                else:
+                    for k in ['TGT_C', 'TGT_T', 'TGT_B']:
+                        if k not in roi_data[i]:
+                            err_flag = True
+                            err_msg += "  Frame - %d : %s\n" % (roi_grp[i], err_dic[k])
+        # Send process signal
+        if err_flag:
+            QtWidgets.QMessageBox.critical(self, "Error", err_msg)
+            return
+        else:
+            # Set progress bar
+            self.prog_steps = frm_num
+            # Execute main task
+            self.__main_proc_task()
+
+
+# [FrameViewer] Whisker tracking frame display and region marker ----------------------------------------------------  #
+# [FrameViewer] Visualization item definition
+class DisplayRect(QtWidgets.QGraphicsRectItem):
+    def __init__(self, x, y, w, h, color, parent=None):
+        """ Custom label rectangle item.
+        Args:
+            x (int or float): Label X coordinate.
+            y (int or float): Label Y coordinate.
+            w (int or float): Label width.
+            h (int or float): Label height.
+            color (tuple[int, int, int]): Label RGB color code.
+            parent (None): None.
+        """
+        super(DisplayRect, self).__init__(parent)
+        # Set item properties
+        self.setData(0, -255)
+        self.setData(1, None)
+        # Set frame of item
+        pen = QtGui.QPen()
+        pen.setWidth(3)
+        pen.setColor(QtGui.QColor(color[0], color[1], color[2], 125))
+        self.setPen(pen)
+        # Set item geometry
+        self.setRect(x, y, w, h)
+        self.setZValue(2)  # Layer 2 for labels
+
+    # Define a UserType for label items
+    def type(self):
+        return QtWidgets.QGraphicsRectItem.UserType + 1
+
+
+# [FrameViewer] ROI marking item definition
+class RegionRect(QtWidgets.QGraphicsRectItem):
+    # Define local geometry reporting variables
+    item_x = 0
+    item_y = 0
+    item_w = 0
+    item_h = 0
+
+    def __init__(self, x, y, w, h, lid, ltg, color, parent=None):
+        """ Custom label rectangle item.
+        Args:
+            x (int or float): Label X coordinate.
+            y (int or float): Label Y coordinate.
+            w (int or float): Label width.
+            h (int or float): Label height.
+            lid (int): Label sequential ID.
+            ltg (str): Label name.
+            color (tuple[int, int, int]): Label RGB color code.
+            parent (None): None.
+        """
+        super(RegionRect, self).__init__(parent)
+        global roi_data
+        # Set item properties
+        self.setData(0, lid)
+        self.setData(1, ltg)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
+        self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
+        # Set frame of item
+        pen = QtGui.QPen()
+        pen.setWidth(3)
+        pen.setColor(QtGui.QColor(color[0], color[1], color[2]))
+        self.setPen(pen)
+        # Set item geometry
+        self.item_x = x
+        self.item_y = y
+        self.item_w = w
+        self.item_h = h
+        self.setRect(x, y, w, h)
+        self.setZValue(16)  # Layer 16 for labels
+        # Set global variable
+        if lid not in roi_data:
+            roi_data[lid] = {}
+        roi_data[lid][ltg] = {"l": int(self.item_x + self.pos().x()),
+                              "r": int(self.item_x + self.pos().x() + self.item_w),
+                              "t": int(self.item_y + self.pos().y()),
+                              "b": int(self.item_y + self.pos().y() + self.item_h)}
+
+    # Define a UserType for label items
+    def type(self):
+        return QtWidgets.QGraphicsRectItem.UserType + 2
+
+    def itemChange(self, change, value):
+        global roi_data
+        # Generate a report when label item changed in position
+        if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
+            # Report dictionary to pass label data to file
+            roi_data[self.data(0)][self.data(1)] = {"l": int(self.item_x + self.pos().x()),
+                                                    "r": int(self.item_x + self.pos().x() + self.item_w),
+                                                    "t": int(self.item_y + self.pos().y()),
+                                                    "b": int(self.item_y + self.pos().y() + self.item_h)}
+        # Default return
+        return QtWidgets.QGraphicsRectItem.itemChange(self, change, value)
+
+
+# [FrameViewer] Label scene definition
+class LabelScene(QtWidgets.QGraphicsScene):
+    tgt_cnt = 0
+    curr_tid = 0
+
+    def __init__(self, parent=None):
+        super(LabelScene, self).__init__(parent)
+        self.ini_loc = [0., 0.]
+        self.disp_rect = DisplayRect(0, 0, 0, 0, (0, 0, 0))
+        self.disp_rect_enable = False
+        # Marker signal connection
+        com_sig.mkr_disp_sig.connect(self.__roi_visible)
+        com_sig.mkr_updt_sig.connect(self.__roi_grp_upd)
+        com_sig.mkr_ctrl_sig.connect(self.__roi_grp_sel)
+
+    def __coord_chk(self, event_pos_x, event_pos_y):
+        # Checking for X positions
+        left = max(min(self.ini_loc[0], event_pos_x), 0)
+        right = min(max(self.ini_loc[0], event_pos_x), self.width())
+        # Checking for Y positions
+        top = max(min(self.ini_loc[1], event_pos_y), 0)
+        bottom = min(max(self.ini_loc[1], event_pos_y), self.height())
+        # Return rectangle coordinates
+        return left, top, right - left, bottom - top
+
+    def mousePressEvent(self, event):
+        global mk_mode, color_palette, roi_id, roi_data
+        # LEFT PRESS to update initial position
+        if event.button() == QtCore.Qt.LeftButton:
+            self.ini_loc[0] = max(event.scenePos().x(), 0.)
+            self.ini_loc[1] = max(event.scenePos().y(), 0.)
+            # SHIFT MODIFIER to initiate rectangle display when adding new items
+            if event.modifiers() == QtCore.Qt.ShiftModifier:
+                if mk_mode != 'NONE':
+                    self.disp_rect = DisplayRect(0, 0, 0, 0, color_palette[mk_mode])
+            else:
+                QtWidgets.QGraphicsScene.mousePressEvent(self, event)
+        # RIGHT PRESS to delete all selected items
+        elif event.button() == QtCore.Qt.RightButton:
+            for i in self.selectedItems():
+                roi_data[roi_id].pop(i.data(1), None)
+                self.removeItem(i)
+        else:
+            QtWidgets.QGraphicsScene.mousePressEvent(self, event)
+
+    def mouseMoveEvent(self, event):
+        global mk_mode
+        # SHIFT MODIFIER to display rectangle when adding new items
+        if event.modifiers() == QtCore.Qt.ShiftModifier:
+            if mk_mode != 'NONE':
+                x, y, w, h = self.__coord_chk(event.scenePos().x(), event.scenePos().y())
+                self.disp_rect.setRect(x, y, w, h)
+                if not self.disp_rect_enable:
+                    self.addItem(self.disp_rect)
+                    self.disp_rect_enable = True
+        else:
+            QtWidgets.QGraphicsScene.mouseMoveEvent(self, event)
+
+    def mouseReleaseEvent(self, event):
+        global mk_mode, roi_id, color_palette, mkr_vis
+        # LEFT RELEASE + SHIFT MODIFIER to add new items
+        if event.button() == QtCore.Qt.LeftButton:
+            if event.modifiers() == QtCore.Qt.ShiftModifier:
+                if mk_mode != 'NONE':
+                    # Remove old ROI
+                    for i in self.items():
+                        if i.data(0) == roi_id and i.data(1) == mk_mode:
+                            self.removeItem(i)
+                            break
+                    x, y, w, h = self.__coord_chk(event.scenePos().x(), event.scenePos().y())
+                    item = RegionRect(x, y, w, h, roi_id, mk_mode, color_palette[mk_mode])
+                    self.addItem(item)
+                    item.setVisible(mkr_vis)  # Check ROI visibility setting
+            else:
+                QtWidgets.QGraphicsScene.mouseReleaseEvent(self, event)
+        else:
+            QtWidgets.QGraphicsScene.mouseReleaseEvent(self, event)
+        # Remove display rectangle
+        if self.disp_rect_enable:
+            self.removeItem(self.disp_rect)
+            self.disp_rect_enable = False
+
+    def __roi_visible(self):
+        global mkr_vis, exp_typ
+        for i in self.items():
+            if i.type() == QtWidgets.QGraphicsRectItem.UserType + 2:
+                i.setVisible(mkr_vis)
+                if i.data(1).startswith('JUV'):
+                    i.setVisible(mkr_vis and exp_typ)
+
+    def __roi_grp_upd(self, var):
+        for i in self.items():
+            if i.type() == QtWidgets.QGraphicsRectItem.UserType + 2:
+                item_lid = i.data(0)
+                if item_lid >= var:
+                    i.setData(0, item_lid + 1)
+
+    def __roi_grp_sel(self):
+        global roi_id
+        for i in self.items():
+            if i.type() == QtWidgets.QGraphicsRectItem.UserType + 2:
+                i.setVisible(i.data(0) == roi_id)
+
+
+# [FrameViewer] Label window definition
+class FrameViewer(QtWidgets.QMainWindow, Ui_FrameViewer):
+    first_call = True
+
+    def __init__(self, parent=None):
+        super(FrameViewer, self).__init__(parent)
+        self.setupUi(self)
+        self.setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
+        self.scene = LabelScene(self)
+        com_sig.frm_info_sig.connect(self.__frame_loader)
+        # Status signal receiver
+        com_sig.frm_info_sig.connect(self.__status_report)
+        com_sig.mkr_info_sig.connect(self.__status_report)
+
+    # Custom signals between different windows
+    def keyPressEvent(self, event):
+        if type(event) == QtGui.QKeyEvent:
+            if event.key() == QtCore.Qt.Key_A or event.key() == QtCore.Qt.Key_Left:
+                com_sig.frm_ctrl_sig.emit(-1)
+            elif event.key() == QtCore.Qt.Key_D or event.key() == QtCore.Qt.Key_Right:
+                com_sig.frm_ctrl_sig.emit(1)
+            else:
+                QtWidgets.QMainWindow.keyPressEvent(self, event)
+        else:
+            QtWidgets.QMainWindow.keyPressEvent(self, event)
+
+    def __status_report(self):
+        self.statusBar.showMessage(mkr_msg + frm_msg)
+
+    def __frame_loader(self, val, _):
+        global frm, frm_list, brt, con, txt_mark, txt_linc, txt_bkgc, txt_hbkg, txt_size, txt_xval, txt_yval
+        if loaded:
+            # Convert OpenCV np-array image to QImage
+            frm = get_frm(vid_cap, val)
+            frm = brt_con(frm, brt, con)
+            if txt_mark:
+                if frm_list[val]['keep'] == 1:
+                    frm = draw_text(frm, "%06d" % val, txt_xval, txt_yval, txt_size, txt_linc, txt_hbkg, txt_bkgc)
+                elif frm_list[val]['keep'] == 0:  # Mark extra frames
+                    frm = draw_text(frm, "%06d" % val, txt_xval, txt_yval, txt_size, (255, 0, 0), txt_hbkg, txt_bkgc)
+                else:  # Mark removed frames
+                    frm = draw_text(frm, "%06d" % val, txt_xval, txt_yval, txt_size, (0, 0, 255), txt_hbkg, txt_bkgc)
+            else:
+                if frm_list[val]['keep'] == 0:  # Mark extra frames
+                    frm = draw_text(frm, "X", 1, 1, 2, (255, 0, 0), True, (255, 255, 255))
+                elif frm_list[val]['keep'] == -1:  # Mark removed frames
+                    frm = draw_text(frm, "X", 1, 1, 2, (0, 0, 255), True, (255, 255, 255))
+            lbl_img = QtGui.QImage(frm, frm.shape[1], frm.shape[0], frm.shape[1] * 3, QtGui.QImage.Format_RGB888)
+            if self.first_call:
+                # Setup QGraphicsScene
+                self.scene.setSceneRect(0, 0, lbl_img.width(), lbl_img.height())
+                # Setup QGraphicsView
+                scroll_bar_size = self.frameDisplay.style().pixelMetric(QtWidgets.QStyle.PM_ScrollBarExtent)
+                self.frameDisplay.setFixedSize(lbl_img.width() + scroll_bar_size, lbl_img.height() + scroll_bar_size)
+                self.frameDisplay.setScene(self.scene)
+                # Change flag
+                self.first_call = False
+            else:
+                # Delete previous frame, avoid memory leak
+                for i in self.scene.items():
+                    if i.type() == 7:  # QGraphicsPixmapItem::Type = 7
+                        self.scene.removeItem(i)
+            # Add new frame, send to background
+            self.scene.addPixmap(QtGui.QPixmap(lbl_img.rgbSwapped()))
+            for i in self.scene.items():
+                if i.type() == 7:  # QGraphicsPixmapItem::Type = 7
+                    i.setZValue(-1)
+
+
+# [MainLoader] Manual labelling main loader  ------------------------------------------------------------------------  #
+class MainLoader(QtWidgets.QMainWindow, Ui_MainLoader):
+    def __init__(self, parent=None):
+        super(MainLoader, self).__init__(parent)
+        self.setupUi(self)
+        self.controlWindow = ControlViewer()
+        self.frameWindow = FrameViewer(self.controlWindow)
+
+        self.videoButton.clicked.connect(self.__video_selection)
+        self.outputButton.clicked.connect(self.__output_selection)
+        self.loadButton.clicked.connect(self.__loading_func)
+        self.exitButton.clicked.connect(QtCore.QCoreApplication.instance().quit)
+
+    # File loading button functions
+    def __video_selection(self):
+        vid_name, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Select Video File",
+                                                            filter="Videos (*.avi *.mp4 *.mov *.mpeg)")
+        self.videoPath.setText(vid_name)
+
+    def __output_selection(self):
+        out_path = QtWidgets.QFileDialog.getExistingDirectory(self, 'Select Output Directory')
+        self.outputPath.setText(out_path)
+
+    # Main loading function
+    def __loading_func(self):
+        global vid_cap, out_dir, frm_list, loaded
+        # Verify GUI inputs
+        flag = False
+        err_msg = str()
+        vid_path = self.videoPath.text()
+        if not os.path.isfile(vid_path):
+            flag = True
+            err_msg += "Video file does not exist!\n"
+        out_path = self.outputPath.text()
+        if not os.path.isdir(out_path):
+            flag = True
+            err_msg += "Invalid output path!\n"
+        if flag:
+            QtWidgets.QMessageBox.critical(self, "Error", err_msg)
+            return
+        # File loading
+        else:
+            out_dir = out_path
+            self.hide()
+            # Load control window
+            self.controlWindow.show()
+            # Load frame viewer and video
+            self.frameWindow.show()
+            vid_cap = cv.VideoCapture(vid_path)
+            # Send video frame information to controls
+            self.controlWindow.tot_frm = int(vid_cap.get(cv.CAP_PROP_FRAME_COUNT))
+            self.controlWindow.xValue.setMaximum(int(vid_cap.get(cv.CAP_PROP_FRAME_WIDTH)))
+            self.controlWindow.yValue.setMaximum(int(vid_cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
+            self.controlWindow.frameSlider.setMaximum(int(vid_cap.get(cv.CAP_PROP_FRAME_COUNT) - 1))
+            self.controlWindow.sliderValue.setMaximum(int(vid_cap.get(cv.CAP_PROP_FRAME_COUNT) - 1))
+            self.controlWindow.totfrmBox.setMaximum(int(vid_cap.get(cv.CAP_PROP_FRAME_COUNT)))
+            # Initialize frame processing list
+            for i in range(int(vid_cap.get(cv.CAP_PROP_FRAME_COUNT))):
+                frm_feat = {'idx': i, 'keep': 1}
+                frm_list.append(copy.deepcopy(frm_feat))
+            # Set status, send signal
+            loaded = True
+            com_sig.frm_info_sig.emit(0, " | Current frame: 0 | Progress: 0 of %d 0.00%%)" % vid_cap.get(7))
