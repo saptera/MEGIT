@@ -8,8 +8,8 @@ from megit.data import get_frm, brt_con, draw_text
 from megit.utils import mk_outdir
 from PyQt5 import QtCore, QtGui, QtWidgets
 from megit.gui.dgn_preproco_ctrl import Ui_ControlViewer
-from megit.gui.dgn_preproco_frmv import Ui_FrameViewer
-from megit.gui.dgn_preproco_load import Ui_MainLoader
+from megit.gui.dgn_preproc_frmv import Ui_FrameViewer
+from megit.gui.dgn_preproc_load import Ui_MainLoader
 
 
 # Global definitions  -----------------------------------------------------------------------------------------------  #
@@ -110,7 +110,7 @@ class ProcWorker(QtCore.QObject):
             txt_mark, txt_linc, txt_hbkg, txt_bkgc, txt_size, txt_xval, txt_yval
 
         # Make output directories
-        frm_dir = mk_outdir(os.path.join(out_dir, "frm/"), "Invalid frame output directory!")
+        frm_dir = mk_outdir(os.path.join(out_dir, "over_frm/"), "Invalid frame output directory!")
         tgt_dir = mk_outdir(os.path.join(out_dir, "tgt/"), "Invalid target animal scene output directory!")
         if exp_typ:
             juv_dir = mk_outdir(os.path.join(out_dir, "juv/"), "Invalid juvenile animal scene output directory!")
@@ -263,7 +263,7 @@ class ProcWorker(QtCore.QObject):
         self.finished.emit()
 
 
-# [ControlViewer] Whisker tracking main controller  -----------------------------------------------------------------  #
+# [ControlViewer] MEGIT Overview-Video main controller  -------------------------------------------------------------  #
 class ControlViewer(QtWidgets.QMainWindow, Ui_ControlViewer):
     tot_frm = 1  # Total frames to label
     curr_frm = 0  # Frame currently operating
@@ -691,6 +691,7 @@ class ControlViewer(QtWidgets.QMainWindow, Ui_ControlViewer):
         self.updButton.setEnabled(False)
         self.prevButton.setEnabled(False)
         self.nextButton.setEnabled(False)
+        self.startButton.setEnabled(False)
         # Final resets
         self.thread.finished.connect(lambda: self.frameSlider.setEnabled(True))
         self.thread.finished.connect(lambda: self.sliderValue.setEnabled(True))
@@ -714,6 +715,7 @@ class ControlViewer(QtWidgets.QMainWindow, Ui_ControlViewer):
         self.thread.finished.connect(lambda: self.updButton.setEnabled(True))
         self.thread.finished.connect(lambda: self.prevButton.setEnabled(True))
         self.thread.finished.connect(lambda: self.nextButton.setEnabled(True))
+        self.thread.finished.connect(lambda: self.startButton.setEnabled(True))
 
     # Main process function
     def __start_func(self):
@@ -752,7 +754,7 @@ class ControlViewer(QtWidgets.QMainWindow, Ui_ControlViewer):
             self.__main_proc_task()
 
 
-# [FrameViewer] Whisker tracking frame display and region marker ----------------------------------------------------  #
+# [FrameViewer] MEGIT Overview-Video frame display and region marker ------------------------------------------------  #
 # [FrameViewer] Visualization item definition
 class DisplayRect(QtWidgets.QGraphicsRectItem):
     def __init__(self, x, y, w, h, color, parent=None):
@@ -1021,7 +1023,7 @@ class FrameViewer(QtWidgets.QMainWindow, Ui_FrameViewer):
                     i.setZValue(-1)
 
 
-# [MainLoader] Manual labelling main loader  ------------------------------------------------------------------------  #
+# [MainLoader] MEGIT Overview-Video main loader  --------------------------------------------------------------------  #
 class MainLoader(QtWidgets.QMainWindow, Ui_MainLoader):
     def __init__(self, parent=None):
         super(MainLoader, self).__init__(parent)

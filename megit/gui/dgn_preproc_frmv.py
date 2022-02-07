@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'E:\MEGIT\megit\gui\dgn_preproco_frmv.ui'
+# Form implementation generated from reading ui file '..\MEGIT\megit\gui\dgn_preproc_frmv.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.4
 #
