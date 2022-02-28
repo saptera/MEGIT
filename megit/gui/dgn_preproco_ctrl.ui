@@ -790,7 +790,7 @@
                     </font>
                    </property>
                    <property name="text">
-                    <string>Target Regions</string>
+                    <string>Test Regions</string>
                    </property>
                   </widget>
                  </item>
@@ -837,17 +837,17 @@
                    </item>
                    <item>
                     <property name="text">
-                     <string>Centre</string>
+                     <string>Gap</string>
                     </property>
                    </item>
                    <item>
                     <property name="text">
-                     <string>Right/Top</string>
+                     <string>Top</string>
                     </property>
                    </item>
                    <item>
                     <property name="text">
-                     <string>Left/Buttom</string>
+                     <string>Bottom</string>
                     </property>
                    </item>
                   </widget>
@@ -882,17 +882,17 @@
                    </item>
                    <item>
                     <property name="text">
-                     <string>Centre</string>
+                     <string>Gap</string>
                     </property>
                    </item>
                    <item>
                     <property name="text">
-                     <string>Right/Top</string>
+                     <string>Top</string>
                     </property>
                    </item>
                    <item>
                     <property name="text">
-                     <string>Left/Buttom</string>
+                     <string>Bottom</string>
                     </property>
                    </item>
                   </widget>

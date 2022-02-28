@@ -2,6 +2,7 @@ import os
 import copy
 import json
 import csv
+import math
 import numpy as np
 import cv2.cv2 as cv
 from megit.data import get_frm, brt_con, draw_text
@@ -110,10 +111,13 @@ class ProcWorker(QtCore.QObject):
             txt_mark, txt_linc, txt_hbkg, txt_bkgc, txt_size, txt_xval, txt_yval
 
         # Make output directories
-        frm_dir = mk_outdir(os.path.join(out_dir, "over_frm/"), "Invalid frame output directory!")
-        tgt_dir = mk_outdir(os.path.join(out_dir, "tgt/"), "Invalid target animal scene output directory!")
         if exp_typ:
+            frm_dir = mk_outdir(os.path.join(out_dir, "frm_over_juv/"), "Invalid frame output directory!")
+            tgt_dir = mk_outdir(os.path.join(out_dir, "test_juv/"), "Invalid target animal scene output directory!")
             juv_dir = mk_outdir(os.path.join(out_dir, "juv/"), "Invalid juvenile animal scene output directory!")
+        else:
+            frm_dir = mk_outdir(os.path.join(out_dir, "frm_over_obj/"), "Invalid frame output directory!")
+            tgt_dir = mk_outdir(os.path.join(out_dir, "test_obj/"), "Invalid target animal scene output directory!")
         # Get basic parameters
         width = int(vid_cap.get(cv.CAP_PROP_FRAME_WIDTH))
         height = int(vid_cap.get(cv.CAP_PROP_FRAME_HEIGHT))
@@ -131,15 +135,15 @@ class ProcWorker(QtCore.QObject):
             juv_b = 0  # INIT/RESET VAR
             for k in roi_data[i]:
                 if k.startswith('TGT'):
-                    tgt_l = min(roi_data[i][k]['l'] - 5, tgt_l)
-                    tgt_r = max(roi_data[i][k]['r'] + 5, tgt_r)
-                    tgt_t = min(roi_data[i][k]['t'] - 5, tgt_t)
-                    tgt_b = max(roi_data[i][k]['b'] + 5, tgt_b)
+                    tgt_l = min(roi_data[i][k]['tl'][0] - 5, roi_data[i][k]['bl'][0] - 5, tgt_l)
+                    tgt_r = max(roi_data[i][k]['tr'][0] + 5, roi_data[i][k]['br'][0] + 5, tgt_r)
+                    tgt_t = min(roi_data[i][k]['tl'][1] - 5, roi_data[i][k]['tr'][1] - 5, tgt_t)
+                    tgt_b = max(roi_data[i][k]['bl'][1] + 5, roi_data[i][k]['br'][1] + 5, tgt_b)
                 if exp_typ and k.startswith('JUV'):
-                    juv_l = min(roi_data[i][k]['l'] - 5, juv_l)
-                    juv_r = max(roi_data[i][k]['r'] + 5, juv_r)
-                    juv_t = min(roi_data[i][k]['t'] - 5, juv_t)
-                    juv_b = max(roi_data[i][k]['b'] + 5, juv_b)
+                    juv_l = min(roi_data[i][k]['tl'][0] - 5, roi_data[i][k]['bl'][0] - 5, juv_l)
+                    juv_r = max(roi_data[i][k]['tr'][0] + 5, roi_data[i][k]['br'][0] + 5, juv_r)
+                    juv_t = min(roi_data[i][k]['tl'][1] - 5, roi_data[i][k]['tr'][1] - 5, juv_t)
+                    juv_b = max(roi_data[i][k]['bl'][1] + 5, roi_data[i][k]['br'][1] + 5, juv_b)
             if exp_typ:
                 roi_crop[i] = {'TGT': [max(tgt_l, 0), min(tgt_r, width), max(tgt_t, 0), min(tgt_b, height)],
                                'JUV': [max(juv_l, 0), min(juv_r, width), max(juv_t, 0), min(juv_b, height)]}
@@ -162,27 +166,19 @@ class ProcWorker(QtCore.QObject):
             # Compute new ROIs
             for k in roi_data[i]:
                 if k.startswith('TGT'):
-                    # Compute left-top point
-                    crop_lt = np.array([roi_data[i][k]['l'] - roi_crop[i]['TGT'][0],
-                                        roi_data[i][k]['t'] - roi_crop[i]['TGT'][2]])
-                    new_l, new_t = [int(pt) for pt in (resize_mat['TGT'] * crop_lt)]
-                    # Compute right-bottom point
-                    crop_rb = np.array([roi_data[i][k]['r'] - roi_crop[i]['TGT'][0],
-                                       roi_data[i][k]['b'] - roi_crop[i]['TGT'][2]])
-                    new_r, new_b = [int(pt) for pt in (resize_mat['TGT'] * crop_rb)]
-                    # Passing new data
-                    roi_adj[i][k] = {'l': new_l, 'r': new_r, 't': new_t, 'b': new_b}
+                    roi_adj[i][k] = {}
+                    for pos in roi_data[i][k]:
+                        crop = np.array([roi_data[i][k][pos][0] - roi_crop[i]['TGT'][0],
+                                         roi_data[i][k][pos][1] - roi_crop[i]['TGT'][2]])
+                        new_pos = [int(pt) for pt in (resize_mat['TGT'] * crop)]
+                        roi_adj[i][k][pos] = new_pos
                 if exp_typ and k.startswith('JUV'):
-                    # Compute left-top point
-                    crop_lt = np.array([roi_data[i][k]['l'] - roi_crop[i]['JUV'][0],
-                                        roi_data[i][k]['t'] - roi_crop[i]['JUV'][2]])
-                    new_l, new_t = [int(pt) for pt in (resize_mat['JUV'] * crop_lt)]
-                    # Compute right-bottom point
-                    crop_rb = np.array([roi_data[i][k]['r'] - roi_crop[i]['JUV'][0],
-                                       roi_data[i][k]['b'] - roi_crop[i]['JUV'][2]])
-                    new_r, new_b = [int(pt) for pt in (resize_mat['JUV'] * crop_rb)]
-                    # Passing new data
-                    roi_adj[i][k] = {'l': new_l, 'r': new_r, 't': new_t, 'b': new_b}
+                    roi_adj[i][k] = {}
+                    for pos in roi_data[i][k]:
+                        crop = np.array([roi_data[i][k][pos][0] - roi_crop[i]['JUV'][0],
+                                         roi_data[i][k][pos][1] - roi_crop[i]['JUV'][2]])
+                        new_pos = [int(pt) for pt in (resize_mat['JUV'] * crop)]
+                        roi_adj[i][k][pos] = new_pos
 
         # Main process loop
         count = 0  # INIT VAR
@@ -195,19 +191,37 @@ class ProcWorker(QtCore.QObject):
             find_roi_id(i)
 
             # Get general frame feature
-            feat_tgt_c = "(%d %d %d %d)" % (roi_data[roi_id]['TGT_C']['l'], roi_data[roi_id]['TGT_C']['r'],
-                                            roi_data[roi_id]['TGT_C']['t'], roi_data[roi_id]['TGT_C']['b'])
-            feat_tgt_t = "(%d %d %d %d)" % (roi_data[roi_id]['TGT_T']['l'], roi_data[roi_id]['TGT_T']['r'],
-                                            roi_data[roi_id]['TGT_T']['t'], roi_data[roi_id]['TGT_T']['b'])
-            feat_tgt_b = "(%d %d %d %d)" % (roi_data[roi_id]['TGT_B']['l'], roi_data[roi_id]['TGT_B']['r'],
-                                            roi_data[roi_id]['TGT_B']['t'], roi_data[roi_id]['TGT_B']['b'])
+            feat_tgt_c = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
+                roi_data[roi_id]['TGT_C']['tl'][0], roi_data[roi_id]['TGT_C']['tl'][1],
+                roi_data[roi_id]['TGT_C']['tr'][0], roi_data[roi_id]['TGT_C']['tr'][1],
+                roi_data[roi_id]['TGT_C']['bl'][0], roi_data[roi_id]['TGT_C']['bl'][1],
+                roi_data[roi_id]['TGT_C']['br'][0], roi_data[roi_id]['TGT_C']['br'][1],)
+            feat_tgt_t = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
+                roi_data[roi_id]['TGT_T']['tl'][0], roi_data[roi_id]['TGT_T']['tl'][1],
+                roi_data[roi_id]['TGT_T']['tr'][0], roi_data[roi_id]['TGT_T']['tr'][1],
+                roi_data[roi_id]['TGT_T']['bl'][0], roi_data[roi_id]['TGT_T']['bl'][1],
+                roi_data[roi_id]['TGT_T']['br'][0], roi_data[roi_id]['TGT_T']['br'][1],)
+            feat_tgt_b = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
+                roi_data[roi_id]['TGT_B']['tl'][0], roi_data[roi_id]['TGT_B']['tl'][1],
+                roi_data[roi_id]['TGT_B']['tr'][0], roi_data[roi_id]['TGT_B']['tr'][1],
+                roi_data[roi_id]['TGT_B']['bl'][0], roi_data[roi_id]['TGT_B']['bl'][1],
+                roi_data[roi_id]['TGT_B']['br'][0], roi_data[roi_id]['TGT_B']['br'][1],)
             if exp_typ:
-                feat_juv_c = "(%d %d %d %d)" % (roi_data[roi_id]['JUV_C']['l'], roi_data[roi_id]['JUV_C']['r'],
-                                                roi_data[roi_id]['JUV_C']['t'], roi_data[roi_id]['JUV_C']['b'])
-                feat_juv_t = "(%d %d %d %d)" % (roi_data[roi_id]['JUV_T']['l'], roi_data[roi_id]['JUV_T']['r'],
-                                                roi_data[roi_id]['JUV_T']['t'], roi_data[roi_id]['JUV_T']['b'])
-                feat_juv_b = "(%d %d %d %d)" % (roi_data[roi_id]['JUV_B']['l'], roi_data[roi_id]['JUV_B']['r'],
-                                                roi_data[roi_id]['JUV_B']['t'], roi_data[roi_id]['JUV_B']['b'])
+                feat_juv_c = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
+                    roi_data[roi_id]['JUV_C']['tl'][0], roi_data[roi_id]['JUV_C']['tl'][1],
+                    roi_data[roi_id]['JUV_C']['tr'][0], roi_data[roi_id]['JUV_C']['tr'][1],
+                    roi_data[roi_id]['JUV_C']['bl'][0], roi_data[roi_id]['JUV_C']['bl'][1],
+                    roi_data[roi_id]['JUV_C']['br'][0], roi_data[roi_id]['JUV_C']['br'][1],)
+                feat_juv_t = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
+                    roi_data[roi_id]['JUV_T']['tl'][0], roi_data[roi_id]['JUV_T']['tl'][1],
+                    roi_data[roi_id]['JUV_T']['tr'][0], roi_data[roi_id]['JUV_T']['tr'][1],
+                    roi_data[roi_id]['JUV_T']['bl'][0], roi_data[roi_id]['JUV_T']['bl'][1],
+                    roi_data[roi_id]['JUV_T']['br'][0], roi_data[roi_id]['JUV_T']['br'][1],)
+                feat_juv_b = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
+                    roi_data[roi_id]['JUV_B']['tl'][0], roi_data[roi_id]['JUV_B']['tl'][1],
+                    roi_data[roi_id]['JUV_B']['tr'][0], roi_data[roi_id]['JUV_B']['tr'][1],
+                    roi_data[roi_id]['JUV_B']['bl'][0], roi_data[roi_id]['JUV_B']['bl'][1],
+                    roi_data[roi_id]['JUV_B']['br'][0], roi_data[roi_id]['JUV_B']['br'][1],)
                 frm_feat.append([i, keep_typ[frm_list[i]['keep']],
                                  feat_tgt_c, feat_tgt_t, feat_tgt_b, feat_juv_c, feat_juv_t, feat_juv_b])
             else:
@@ -229,7 +243,7 @@ class ProcWorker(QtCore.QObject):
                 tgt = img[roi_crop[roi_id]['TGT'][2]:roi_crop[roi_id]['TGT'][3],
                           roi_crop[roi_id]['TGT'][0]:roi_crop[roi_id]['TGT'][1]]
                 tgt = cv.resize(tgt, (256, 256), interpolation=cv.INTER_AREA)
-                cv.imwrite(os.path.join(tgt_dir, "tgt_%06d.png" % i), tgt)
+                cv.imwrite(os.path.join(tgt_dir, "tst_%06d.png" % i), tgt)
                 # Process juvenile animal region
                 if exp_typ:
                     juv_feat[i] = {'C': copy.deepcopy(roi_adj[roi_id]['JUV_C']),
@@ -244,7 +258,8 @@ class ProcWorker(QtCore.QObject):
                 self.progress.emit(count)
 
         # Write process details to file
-        with open(os.path.join(out_dir, "frm_prop.csv"), 'w', newline='') as csv_file:
+        csv_name = "frm_over_juv_prop.csv" if exp_typ else "frm_over_obj_prop.csv"
+        with open(os.path.join(out_dir, csv_name), 'w', newline='') as csv_file:
             writer = csv.writer(csv_file)
             writer.writerow(['brightness_level', 'contrast_level'])
             writer.writerow([brt, con])
@@ -254,7 +269,7 @@ class ProcWorker(QtCore.QObject):
                              'centre', 'right_top', 'left_bottom'])
             writer.writerows(frm_feat)
 
-        with open(os.path.join(tgt_dir, "tgt_prop.json"), 'w', encoding='utf-8') as tgt_file:
+        with open(os.path.join(tgt_dir, "tst_prop.json"), 'w', encoding='utf-8') as tgt_file:
             json.dump(tgt_feat, tgt_file, ensure_ascii=False)
         if exp_typ:
             with open(os.path.join(juv_dir, "juv_prop.json"), 'w', encoding='utf-8') as juv_file:
@@ -582,17 +597,17 @@ class ControlViewer(QtWidgets.QMainWindow, Ui_ControlViewer):
         # Set current target animal labelling method
         if self.tgtBox.currentIndex() == 1:
             mk_mode = 'TGT_C'
-            mkr_msg = "Current Marker: Target - Center"
+            mkr_msg = "Current Marker: Test Animal - Gap"
             com_sig.mkr_info_sig.emit(0, 0, mk_mode)  # Disable juvenile animal labelling
             self.juvBox.setCurrentIndex(0)
         elif self.tgtBox.currentIndex() == 2:
             mk_mode = 'TGT_T'
-            mkr_msg = "Current Marker: Target - Right/Top"
+            mkr_msg = "Current Marker: Test Animal - Top"
             com_sig.mkr_info_sig.emit(0, 1, mk_mode)
             self.juvBox.setCurrentIndex(0)  # Disable juvenile animal labelling
         elif self.tgtBox.currentIndex() == 3:
             mk_mode = 'TGT_B'
-            mkr_msg = "Current Marker: Target - Left/Bottom"
+            mkr_msg = "Current Marker: Test Animal - Bottom"
             com_sig.mkr_info_sig.emit(0, 2, mk_mode)
             self.juvBox.setCurrentIndex(0)  # Disable juvenile animal labelling
         else:
@@ -606,17 +621,17 @@ class ControlViewer(QtWidgets.QMainWindow, Ui_ControlViewer):
         # Set current juvenile animal labelling method
         if self.juvBox.currentIndex() == 1:
             mk_mode = 'JUV_C'
-            mkr_msg = "Current Marker: Juvenile - Center"
+            mkr_msg = "Current Marker: Juvenile Animal - Gap"
             com_sig.mkr_info_sig.emit(1, 0, mk_mode)
             self.tgtBox.setCurrentIndex(0)  # Disable target animal labelling
         elif self.juvBox.currentIndex() == 2:
             mk_mode = 'JUV_T'
-            mkr_msg = "Current Marker: Juvenile - Right/Top"
+            mkr_msg = "Current Marker: Juvenile Animal - Top"
             com_sig.mkr_info_sig.emit(1, 1, mk_mode)
             self.tgtBox.setCurrentIndex(0)  # Disable target animal labelling
         elif self.juvBox.currentIndex() == 3:
             mk_mode = 'JUV_B'
-            mkr_msg = "Current Marker: Juvenile - Left/Bottom"
+            mkr_msg = "Current Marker: Juvenile Animal - Bottom"
             com_sig.mkr_info_sig.emit(1, 2, mk_mode)
             self.tgtBox.setCurrentIndex(0)  # Disable target animal labelling
         else:
@@ -730,8 +745,8 @@ class ControlViewer(QtWidgets.QMainWindow, Ui_ControlViewer):
                 err_msg = "Please define ROIs for Target animal!"
         else:
             err_msg = "Missing following ROIs:\n"
-            err_dic = {'JUV_B': "Juvenile - Left/Bottom", 'JUV_C': "Juvenile - Centre", 'JUV_T': "Juvenile - Right/Top",
-                       'TGT_B': "Target - Left/Bottom", 'TGT_C': "Target - Centre", 'TGT_T': "Target - Right/Top"}
+            err_dic = {'JUV_B': "Juvenile - Bottom", 'JUV_C': "Juvenile - Gap", 'JUV_T': "Juvenile - Top",
+                       'TGT_B': "Test Animal - Bottom", 'TGT_C': "Test Animal - Gap", 'TGT_T': "Test Animal - Top"}
             for i in roi_data:
                 if exp_typ:
                     for k in ['TGT_C', 'TGT_T', 'TGT_B', 'JUV_C', 'JUV_T', 'JUV_B']:
@@ -787,11 +802,40 @@ class DisplayRect(QtWidgets.QGraphicsRectItem):
 
 # [FrameViewer] ROI marking item definition
 class RegionRect(QtWidgets.QGraphicsRectItem):
-    # Define local geometry reporting variables
+    # Define local graphical variables
     item_x = 0
     item_y = 0
     item_w = 0
     item_h = 0
+    item_ce = QtGui.QColor(0, 0, 0, 255)
+    item_cf = QtGui.QColor(0, 0, 0, 125)
+
+    # Mouse control flag
+    hoverFlag = False
+
+    # Define handle features
+    handleSize = 8.0
+    handleSpace = -4.0
+    # Define handle IDs
+    handleTopLeft = 1
+    handleTopMiddle = 2
+    handleTopRight = 3
+    handleMiddleLeft = 4
+    handleMiddleRight = 5
+    handleBottomLeft = 6
+    handleBottomMiddle = 7
+    handleBottomRight = 8
+    # Define handle cursors
+    handleCursors = {
+        handleTopLeft: QtCore.Qt.CrossCursor,
+        handleTopMiddle: QtCore.Qt.SizeVerCursor,
+        handleTopRight: QtCore.Qt.CrossCursor,
+        handleMiddleLeft: QtCore.Qt.SizeHorCursor,
+        handleMiddleRight: QtCore.Qt.SizeHorCursor,
+        handleBottomLeft: QtCore.Qt.CrossCursor,
+        handleBottomMiddle: QtCore.Qt.SizeVerCursor,
+        handleBottomRight: QtCore.Qt.CrossCursor,
+    }
 
     def __init__(self, x, y, w, h, lid, ltg, color, parent=None):
         """ Custom label rectangle item.
@@ -813,39 +857,202 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsSelectable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
-        # Set frame of item
-        pen = QtGui.QPen()
-        pen.setWidth(3)
-        pen.setColor(QtGui.QColor(color[0], color[1], color[2]))
-        self.setPen(pen)
-        # Set item geometry
+        # Set item graphical features
         self.item_x = x
         self.item_y = y
         self.item_w = w
         self.item_h = h
+        self.item_ce = QtGui.QColor(color[0], color[1], color[2], 255)
+        self.item_cf = QtGui.QColor(color[0], color[1], color[2], 125)
         self.setRect(x, y, w, h)
         self.setZValue(16)  # Layer 16 for labels
+        # Set geometry controls
+        self.handles = {}
+        self.handleSelected = None
+        self.mousePressPos = None
+        self.mousePressRect = None
+        self.setAcceptHoverEvents(True)
+        self.updateHandlesPos()
         # Set global variable
         if lid not in roi_data:
             roi_data[lid] = {}
-        roi_data[lid][ltg] = {"l": int(self.item_x + self.pos().x()),
-                              "r": int(self.item_x + self.pos().x() + self.item_w),
-                              "t": int(self.item_y + self.pos().y()),
-                              "b": int(self.item_y + self.pos().y() + self.item_h)}
+        roi_data[lid][ltg] = {
+            'tl': (int(self.mapToScene(self.rect().topLeft()).x()),
+                   int(self.mapToScene(self.rect().topLeft()).y())),
+            'tr': (int(self.mapToScene(self.rect().topRight()).x()),
+                   int(self.mapToScene(self.rect().topRight()).y())),
+            'bl': (int(self.mapToScene(self.rect().bottomLeft()).x()),
+                   int(self.mapToScene(self.rect().bottomLeft()).y())),
+            'br': (int(self.mapToScene(self.rect().bottomRight()).x()),
+                   int(self.mapToScene(self.rect().bottomRight()).y()))}
+        print(roi_data)
 
     # Define a UserType for label items
     def type(self):
         return QtWidgets.QGraphicsRectItem.UserType + 2
 
+    def handleAt(self, point):
+        """
+        Returns the resize handle below the given point.
+        """
+        for k, v, in self.handles.items():
+            if v.contains(point):
+                return k
+        return None
+
+    def hoverMoveEvent(self, hoverEvent):
+        self.hoverFlag = True
+        handle = self.handleAt(hoverEvent.pos())
+        cursor = QtCore.Qt.ArrowCursor if handle is None else self.handleCursors[handle]
+        self.setCursor(cursor)
+        super().hoverMoveEvent(hoverEvent)
+
+    def hoverLeaveEvent(self, hoverEvent):
+        self.hoverFlag = False
+        self.setCursor(QtCore.Qt.ArrowCursor)
+        super().hoverLeaveEvent(hoverEvent)
+
+    def mousePressEvent(self, mouseEvent):
+        self.handleSelected = self.handleAt(mouseEvent.pos())
+        if self.handleSelected:
+            self.mousePressPos = mouseEvent.pos()
+            self.mousePressRect = self.boundingRect()
+        super().mousePressEvent(mouseEvent)
+
+    def mouseMoveEvent(self, mouseEvent):
+        if self.handleSelected is not None:
+            self.interactiveTransform(mouseEvent.pos())
+        else:
+            super().mouseMoveEvent(mouseEvent)
+
+    def mouseReleaseEvent(self, mouseEvent):
+        super().mouseReleaseEvent(mouseEvent)
+        self.handleSelected = None
+        self.mousePressPos = None
+        self.mousePressRect = None
+        self.update()
+
+    def boundingRect(self):
+        o = self.handleSize + self.handleSpace
+        return self.rect().adjusted(-o, -o, o, o)
+
+    def updateHandlesPos(self):
+        """
+        Update current resize handles according to the shape size and position.
+        """
+        s = self.handleSize
+        b = self.boundingRect()
+        self.handles[self.handleTopLeft] = QtCore.QRectF(b.left(), b.top(), s, s)
+        self.handles[self.handleTopMiddle] = QtCore.QRectF(b.center().x() - s / 2, b.top(), s * 0.8, s * 0.8)
+        self.handles[self.handleTopRight] = QtCore.QRectF(b.right() - s, b.top(), s, s)
+        self.handles[self.handleMiddleLeft] = QtCore.QRectF(b.left(), b.center().y() - s / 2, s * 0.8, s * 0.8)
+        self.handles[self.handleMiddleRight] = QtCore.QRectF(b.right() - s, b.center().y() - s / 2, s * 0.8, s * 0.8)
+        self.handles[self.handleBottomLeft] = QtCore.QRectF(b.left(), b.bottom() - s, s, s)
+        self.handles[self.handleBottomMiddle] = QtCore.QRectF(b.center().x() - s / 2, b.bottom() - s, s * 0.8, s * 0.8)
+        self.handles[self.handleBottomRight] = QtCore.QRectF(b.right() - s, b.bottom() - s, s, s)
+
+    def interactiveTransform(self, mousePos):
+        """
+        Perform shape interactive transformation to ROI.
+        """
+        global roi_data
+        # Get basic info
+        offset = self.handleSize + self.handleSpace
+        boundingRect = self.boundingRect()
+        rect = self.rect()
+        diff = QtCore.QPointF(0, 0)
+        # Process transformation
+        self.prepareGeometryChange()
+        if self.handleSelected == self.handleTopMiddle:
+            fromY = self.mousePressRect.top()
+            toY = fromY + mousePos.y() - self.mousePressPos.y()
+            diff.setY(toY - fromY)
+            boundingRect.setTop(toY)
+            rect.setTop(boundingRect.top() + offset)
+            self.setRect(rect)
+        elif self.handleSelected == self.handleMiddleLeft:
+            fromX = self.mousePressRect.left()
+            toX = fromX + mousePos.x() - self.mousePressPos.x()
+            diff.setX(toX - fromX)
+            boundingRect.setLeft(toX)
+            rect.setLeft(boundingRect.left() + offset)
+            self.setRect(rect)
+        elif self.handleSelected == self.handleMiddleRight:
+            fromX = self.mousePressRect.right()
+            toX = fromX + mousePos.x() - self.mousePressPos.x()
+            diff.setX(toX - fromX)
+            boundingRect.setRight(toX)
+            rect.setRight(boundingRect.right() - offset)
+            self.setRect(rect)
+        elif self.handleSelected == self.handleBottomMiddle:
+            fromY = self.mousePressRect.bottom()
+            toY = fromY + mousePos.y() - self.mousePressPos.y()
+            diff.setY(toY - fromY)
+            boundingRect.setBottom(toY)
+            rect.setBottom(boundingRect.bottom() - offset)
+            self.setRect(rect)
+        else:
+            self.setTransformOriginPoint(self.rect().center())
+            if self.handleSelected == self.handleTopLeft:
+                offPos = self.rect().center() - self.rect().topLeft()
+            elif self.handleSelected == self.handleTopRight:
+                offPos = self.rect().center() - self.rect().topRight()
+            elif self.handleSelected == self.handleBottomLeft:
+                offPos = self.rect().center() - self.rect().bottomLeft()
+            elif self.handleSelected == self.handleBottomRight:
+                offPos = self.rect().center() - self.rect().bottomRight()
+            else:
+                offPos = self.rect().center()
+            offAngle = math.atan2(offPos.y(), offPos.x()) / math.pi * 180
+            fromX = self.mapToScene(self.rect().center()).x()
+            fromY = self.mapToScene(self.rect().center()).y()
+            toX = self.mapToScene(mousePos).x()
+            toY = self.mapToScene(mousePos).y()
+            angle = math.atan2(fromY - toY, fromX - toX) / math.pi * 180 - offAngle
+            self.setRotation(angle)
+        # Update related features
+        self.updateHandlesPos()
+        roi_data[self.data(0)][self.data(1)] = {
+            'tl': (int(self.mapToScene(self.rect().topLeft()).x()),
+                   int(self.mapToScene(self.rect().topLeft()).y())),
+            'tr': (int(self.mapToScene(self.rect().topRight()).x()),
+                   int(self.mapToScene(self.rect().topRight()).y())),
+            'bl': (int(self.mapToScene(self.rect().bottomLeft()).x()),
+                   int(self.mapToScene(self.rect().bottomLeft()).y())),
+            'br': (int(self.mapToScene(self.rect().bottomRight()).x()),
+                   int(self.mapToScene(self.rect().bottomRight()).y()))}
+        print(roi_data)
+
+    def paint(self, painter, option, widget=None):
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        # Draw main rectangle
+        painter.setPen(QtGui.QPen(self.item_ce, 2.0, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin))
+        painter.drawRect(self.rect())
+        # Draw handles
+        painter.setPen(QtGui.QPen(self.item_ce, 1.0, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin))
+        painter.setBrush(QtGui.QBrush(self.item_cf))
+        if self.hoverFlag or self.isSelected():
+            for handle, rect in self.handles.items():
+                if self.handleSelected is None or handle == self.handleSelected:
+                    if handle in [1, 3, 6, 8]:
+                        painter.drawEllipse(rect)
+                    else:
+                        painter.drawRect(rect)
+
     def itemChange(self, change, value):
         global roi_data
         # Generate a report when label item changed in position
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
-            # Report dictionary to pass label data to file
-            roi_data[self.data(0)][self.data(1)] = {"l": int(self.item_x + self.pos().x()),
-                                                    "r": int(self.item_x + self.pos().x() + self.item_w),
-                                                    "t": int(self.item_y + self.pos().y()),
-                                                    "b": int(self.item_y + self.pos().y() + self.item_h)}
+            roi_data[self.data(0)][self.data(1)] = {
+                'tl': (int(self.mapToScene(self.rect().topLeft()).x()),
+                       int(self.mapToScene(self.rect().topLeft()).y())),
+                'tr': (int(self.mapToScene(self.rect().topRight()).x()),
+                       int(self.mapToScene(self.rect().topRight()).y())),
+                'bl': (int(self.mapToScene(self.rect().bottomLeft()).x()),
+                       int(self.mapToScene(self.rect().bottomLeft()).y())),
+                'br': (int(self.mapToScene(self.rect().bottomRight()).x()),
+                       int(self.mapToScene(self.rect().bottomRight()).y()))}
+            print(roi_data)
         # Default return
         return QtWidgets.QGraphicsRectItem.itemChange(self, change, value)
 
@@ -854,6 +1061,8 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
 class LabelScene(QtWidgets.QGraphicsScene):
     tgt_cnt = 0
     curr_tid = 0
+    # Mouse left key flag
+    left_clicked = False
 
     def __init__(self, parent=None):
         super(LabelScene, self).__init__(parent)
@@ -879,6 +1088,7 @@ class LabelScene(QtWidgets.QGraphicsScene):
         global mk_mode, color_palette, roi_id, roi_data
         # LEFT PRESS to update initial position
         if event.button() == QtCore.Qt.LeftButton:
+            self.left_clicked = True
             self.ini_loc[0] = max(event.scenePos().x(), 0.)
             self.ini_loc[1] = max(event.scenePos().y(), 0.)
             # SHIFT MODIFIER to initiate rectangle display when adding new items
@@ -889,17 +1099,19 @@ class LabelScene(QtWidgets.QGraphicsScene):
                 QtWidgets.QGraphicsScene.mousePressEvent(self, event)
         # RIGHT PRESS to delete all selected items
         elif event.button() == QtCore.Qt.RightButton:
+            self.left_clicked = False
             for i in self.selectedItems():
                 roi_data[roi_id].pop(i.data(1), None)
                 self.removeItem(i)
         else:
+            self.left_clicked = False
             QtWidgets.QGraphicsScene.mousePressEvent(self, event)
 
     def mouseMoveEvent(self, event):
         global mk_mode
         # SHIFT MODIFIER to display rectangle when adding new items
         if event.modifiers() == QtCore.Qt.ShiftModifier:
-            if mk_mode != 'NONE':
+            if mk_mode != 'NONE' and self.left_clicked:
                 x, y, w, h = self.__coord_chk(event.scenePos().x(), event.scenePos().y())
                 self.disp_rect.setRect(x, y, w, h)
                 if not self.disp_rect_enable:
@@ -910,6 +1122,7 @@ class LabelScene(QtWidgets.QGraphicsScene):
 
     def mouseReleaseEvent(self, event):
         global mk_mode, roi_id, color_palette, mkr_vis
+        self.left_clicked = False
         # LEFT RELEASE + SHIFT MODIFIER to add new items
         if event.button() == QtCore.Qt.LeftButton:
             if event.modifiers() == QtCore.Qt.ShiftModifier:
