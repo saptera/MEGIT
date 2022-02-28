@@ -41,6 +41,7 @@ mkr_msg = "No Marker Selected"  # Information message of current label
 
 # Define global process variables
 out_dir = str()  # Output directory
+frm_dig = '%05d'  # Length of frame digits
 brt = 0  # Brightness level
 con = 0  # Contrast level
 txt_mark = False  # Define frame index text exist or not
@@ -107,7 +108,7 @@ class ProcWorker(QtCore.QObject):
     progress = QtCore.pyqtSignal(int)
 
     def run(self):
-        global out_dir, vid_cap, brt, con, exp_typ, frm_num, frm_list, roi_id, roi_data,\
+        global out_dir, vid_cap, brt, con, exp_typ, frm_dig, frm_num, frm_list, roi_id, roi_data,\
             txt_mark, txt_linc, txt_hbkg, txt_bkgc, txt_size, txt_xval, txt_yval
 
         # Make output directories
@@ -234,8 +235,8 @@ class ProcWorker(QtCore.QObject):
                 # Process and write frames
                 img = brt_con(img, brt, con)
                 if txt_mark:
-                    img = draw_text(img, "%06d" % i, txt_xval, txt_yval, txt_size, txt_linc, txt_hbkg, txt_bkgc)
-                cv.imwrite(os.path.join(frm_dir, "frm_%06d.png" % i), img)
+                    img = draw_text(img, frm_dig % i, txt_xval, txt_yval, txt_size, txt_linc, txt_hbkg, txt_bkgc)
+                cv.imwrite(os.path.join(frm_dir, "frm_" + frm_dig % i + ".png"), img)
                 # Process target animal region
                 tgt_feat[i] = {'C': copy.deepcopy(roi_adj[roi_id]['TGT_C']),
                                'T': copy.deepcopy(roi_adj[roi_id]['TGT_T']),
@@ -243,7 +244,7 @@ class ProcWorker(QtCore.QObject):
                 tgt = img[roi_crop[roi_id]['TGT'][2]:roi_crop[roi_id]['TGT'][3],
                           roi_crop[roi_id]['TGT'][0]:roi_crop[roi_id]['TGT'][1]]
                 tgt = cv.resize(tgt, (256, 256), interpolation=cv.INTER_AREA)
-                cv.imwrite(os.path.join(tgt_dir, "tst_%06d.png" % i), tgt)
+                cv.imwrite(os.path.join(tgt_dir, "tst_" + frm_dig % i + ".png"), tgt)
                 # Process juvenile animal region
                 if exp_typ:
                     juv_feat[i] = {'C': copy.deepcopy(roi_adj[roi_id]['JUV_C']),
@@ -252,7 +253,7 @@ class ProcWorker(QtCore.QObject):
                     juv = img[roi_crop[roi_id]['JUV'][2]:roi_crop[roi_id]['JUV'][3],
                               roi_crop[roi_id]['JUV'][0]:roi_crop[roi_id]['JUV'][1]]
                     juv = cv.resize(juv, (256, 256), interpolation=cv.INTER_AREA)
-                    cv.imwrite(os.path.join(juv_dir, "juv_%06d.png" % i), juv)
+                    cv.imwrite(os.path.join(juv_dir, "juv_" + frm_dig % i + ".png"), juv)
                 # Progress report, set here as this is the most cost section
                 count += 1
                 self.progress.emit(count)
@@ -1197,18 +1198,18 @@ class FrameViewer(QtWidgets.QMainWindow, Ui_FrameViewer):
         self.statusBar.showMessage(mkr_msg + frm_msg)
 
     def __frame_loader(self, val, _):
-        global frm, frm_list, brt, con, txt_mark, txt_linc, txt_bkgc, txt_hbkg, txt_size, txt_xval, txt_yval
+        global frm, frm_list, frm_dig, brt, con, txt_mark, txt_linc, txt_bkgc, txt_hbkg, txt_size, txt_xval, txt_yval
         if loaded:
             # Convert OpenCV np-array image to QImage
             frm = get_frm(vid_cap, val)
             frm = brt_con(frm, brt, con)
             if txt_mark:
                 if frm_list[val]['keep'] == 1:
-                    frm = draw_text(frm, "%06d" % val, txt_xval, txt_yval, txt_size, txt_linc, txt_hbkg, txt_bkgc)
+                    frm = draw_text(frm, frm_dig % val, txt_xval, txt_yval, txt_size, txt_linc, txt_hbkg, txt_bkgc)
                 elif frm_list[val]['keep'] == 0:  # Mark extra frames
-                    frm = draw_text(frm, "%06d" % val, txt_xval, txt_yval, txt_size, (255, 0, 0), txt_hbkg, txt_bkgc)
+                    frm = draw_text(frm, frm_dig % val, txt_xval, txt_yval, txt_size, (255, 0, 0), txt_hbkg, txt_bkgc)
                 else:  # Mark removed frames
-                    frm = draw_text(frm, "%06d" % val, txt_xval, txt_yval, txt_size, (0, 0, 255), txt_hbkg, txt_bkgc)
+                    frm = draw_text(frm, frm_dig % val, txt_xval, txt_yval, txt_size, (0, 0, 255), txt_hbkg, txt_bkgc)
             else:
                 if frm_list[val]['keep'] == 0:  # Mark extra frames
                     frm = draw_text(frm, "X", 1, 1, 2, (255, 0, 0), True, (255, 255, 255))
@@ -1261,7 +1262,7 @@ class MainLoader(QtWidgets.QMainWindow, Ui_MainLoader):
 
     # Main loading function
     def __loading_func(self):
-        global vid_cap, out_dir, frm_list, loaded
+        global vid_cap, out_dir, frm_dig, frm_list, loaded
         # Verify GUI inputs
         flag = False
         err_msg = str()
@@ -1298,4 +1299,5 @@ class MainLoader(QtWidgets.QMainWindow, Ui_MainLoader):
                 frm_list.append(copy.deepcopy(frm_feat))
             # Set status, send signal
             loaded = True
+            frm_dig = '%%0%dd' % int(math.log10(vid_cap.get(cv.CAP_PROP_FRAME_COUNT)) + 1)
             com_sig.frm_info_sig.emit(0, " | Current frame: 0 | Progress: 0 of %d 0.00%%)" % vid_cap.get(7))
