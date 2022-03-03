@@ -803,17 +803,13 @@ class DisplayRect(QtWidgets.QGraphicsRectItem):
 
 # [FrameViewer] ROI marking item definition
 class RegionRect(QtWidgets.QGraphicsRectItem):
-    # Define local graphical variables
-    item_x = 0
-    item_y = 0
-    item_w = 0
-    item_h = 0
-    item_ce = QtGui.QColor(0, 0, 0, 255)
-    item_cf = QtGui.QColor(0, 0, 0, 125)
     # Set graphical limitations
     minWidth = 20
     minHeight = 20
-    maxAngle = 40
+    maxAngle = 45
+    # Define ROI colour variables
+    colorEdge = QtGui.QColor(0, 0, 0, 255)
+    colorFace = QtGui.QColor(0, 0, 0, 125)
 
     # Mouse control flag
     hoverFlag = False
@@ -864,12 +860,8 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
         self.setFlag(QtWidgets.QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QtWidgets.QGraphicsItem.ItemSendsGeometryChanges, True)
         # Set item graphical features
-        self.item_x = x
-        self.item_y = y
-        self.item_w = w
-        self.item_h = h
-        self.item_ce = QtGui.QColor(color[0], color[1], color[2], 255)
-        self.item_cf = QtGui.QColor(color[0], color[1], color[2], 125)
+        self.colorEdge = QtGui.QColor(color[0], color[1], color[2], 255)
+        self.colorFace = QtGui.QColor(color[0], color[1], color[2], 125)
         self.setRect(x, y, w, h)
         self.setZValue(16)  # Layer 16 for labels
         # Set geometry controls
@@ -973,6 +965,7 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
             # Limit ROI width minimum
             if boundingRect.right() - toX < self.minWidth:
                 toX = boundingRect.right() - self.minWidth
+            # Set resize
             boundingRect.setLeft(toX)
             rect.setLeft(boundingRect.left() + offset)
             self.setRect(rect)
@@ -982,6 +975,7 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
             # Limit ROI width minimum
             if toX - boundingRect.left() < self.minWidth:
                 toX = boundingRect.left() + self.minWidth
+            # Set resize
             boundingRect.setRight(toX)
             rect.setRight(boundingRect.right() - offset)
             self.setRect(rect)
@@ -991,6 +985,7 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
             # Limit ROI height minimum
             if boundingRect.bottom() - toY < self.minHeight:
                 toY = boundingRect.bottom() - self.minHeight
+            # Set resize
             boundingRect.setTop(toY)
             rect.setTop(boundingRect.top() + offset)
             self.setRect(rect)
@@ -1000,27 +995,26 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
             # Limit ROI height minimum
             if toY - boundingRect.top() < self.minHeight:
                 toY = boundingRect.top() + self.minHeight
+            # Set resize
             boundingRect.setBottom(toY)
             rect.setBottom(boundingRect.bottom() - offset)
             self.setRect(rect)
         else:
             self.setTransformOriginPoint(self.rect().center())
             if self.handleSelected == self.handleTopLeft:
-                offPos = self.rect().center() - self.rect().topLeft()
+                fromPos = self.rect().center() - self.rect().topLeft()
+                toPos = self.mapToScene(self.rect().center()) - self.mapToScene(mousePos)
             elif self.handleSelected == self.handleTopRight:
-                offPos = self.rect().center() - self.rect().topRight()
+                fromPos = self.rect().topRight() - self.rect().center()
+                toPos = self.mapToScene(mousePos) - self.mapToScene(self.rect().center())
             elif self.handleSelected == self.handleBottomLeft:
-                offPos = self.rect().center() - self.rect().bottomLeft()
+                fromPos = self.rect().center() - self.rect().bottomLeft()
+                toPos = self.mapToScene(self.rect().center()) - self.mapToScene(mousePos)
             elif self.handleSelected == self.handleBottomRight:
-                offPos = self.rect().center() - self.rect().bottomRight()
-            else:
-                offPos = self.rect().center()
-            offAngle = math.atan2(offPos.y(), offPos.x()) / math.pi * 180
-            fromX = self.mapToScene(self.rect().center()).x()
-            fromY = self.mapToScene(self.rect().center()).y()
-            toX = self.mapToScene(mousePos).x()
-            toY = self.mapToScene(mousePos).y()
-            angle = math.atan2(fromY - toY, fromX - toX) / math.pi * 180 - offAngle
+                fromPos = self.rect().bottomRight() - self.rect().center()
+                toPos = self.mapToScene(mousePos) - self.mapToScene(self.rect().center())
+            fromAngle = math.atan2(fromPos.y(), fromPos.x()) / math.pi * 180
+            angle = math.atan2(toPos.y(), toPos.x()) / math.pi * 180 - fromAngle
             # Limit rotation range
             if angle < -self.maxAngle:
                 if self.angleHold == 0:
@@ -1036,6 +1030,7 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
                     angle = self.angleHold
             else:
                 self.angleHold = 0
+            # Set rotation
             self.setRotation(angle)
         # Update related features
         self.updateHandlesPos()
@@ -1052,11 +1047,11 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
     def paint(self, painter, option, widget=None):
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
         # Draw main rectangle
-        painter.setPen(QtGui.QPen(self.item_ce, 2.0, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin))
+        painter.setPen(QtGui.QPen(self.colorEdge, 2.0, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin))
         painter.drawRect(self.rect())
         # Draw handles
-        painter.setPen(QtGui.QPen(self.item_ce, 1.0, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin))
-        painter.setBrush(QtGui.QBrush(self.item_cf))
+        painter.setPen(QtGui.QPen(self.colorEdge, 1.0, QtCore.Qt.SolidLine, QtCore.Qt.RoundCap, QtCore.Qt.RoundJoin))
+        painter.setBrush(QtGui.QBrush(self.colorFace))
         if self.hoverFlag or self.isSelected():
             for handle, rect in self.handles.items():
                 if self.handleSelected is None or handle == self.handleSelected:
