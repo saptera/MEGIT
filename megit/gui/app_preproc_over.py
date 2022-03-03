@@ -810,9 +810,14 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
     item_h = 0
     item_ce = QtGui.QColor(0, 0, 0, 255)
     item_cf = QtGui.QColor(0, 0, 0, 125)
+    # Set graphical limitations
+    minWidth = 20
+    minHeight = 20
+    maxAngle = 40
 
     # Mouse control flag
     hoverFlag = False
+    angleHold = 0
 
     # Define handle features
     handleSize = 8.0
@@ -886,7 +891,6 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
                    int(self.mapToScene(self.rect().bottomLeft()).y())),
             'br': (int(self.mapToScene(self.rect().bottomRight()).x()),
                    int(self.mapToScene(self.rect().bottomRight()).y()))}
-        print(roi_data)
 
     # Define a UserType for label items
     def type(self):
@@ -961,34 +965,41 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
         offset = self.handleSize + self.handleSpace
         boundingRect = self.boundingRect()
         rect = self.rect()
-        diff = QtCore.QPointF(0, 0)
         # Process transformation
         self.prepareGeometryChange()
-        if self.handleSelected == self.handleTopMiddle:
-            fromY = self.mousePressRect.top()
-            toY = fromY + mousePos.y() - self.mousePressPos.y()
-            diff.setY(toY - fromY)
-            boundingRect.setTop(toY)
-            rect.setTop(boundingRect.top() + offset)
-            self.setRect(rect)
-        elif self.handleSelected == self.handleMiddleLeft:
+        if self.handleSelected == self.handleMiddleLeft:
             fromX = self.mousePressRect.left()
             toX = fromX + mousePos.x() - self.mousePressPos.x()
-            diff.setX(toX - fromX)
+            # Limit ROI width minimum
+            if boundingRect.right() - toX < self.minWidth:
+                toX = boundingRect.right() - self.minWidth
             boundingRect.setLeft(toX)
             rect.setLeft(boundingRect.left() + offset)
             self.setRect(rect)
         elif self.handleSelected == self.handleMiddleRight:
             fromX = self.mousePressRect.right()
             toX = fromX + mousePos.x() - self.mousePressPos.x()
-            diff.setX(toX - fromX)
+            # Limit ROI width minimum
+            if toX - boundingRect.left() < self.minWidth:
+                toX = boundingRect.left() + self.minWidth
             boundingRect.setRight(toX)
             rect.setRight(boundingRect.right() - offset)
+            self.setRect(rect)
+        elif self.handleSelected == self.handleTopMiddle:
+            fromY = self.mousePressRect.top()
+            toY = fromY + mousePos.y() - self.mousePressPos.y()
+            # Limit ROI height minimum
+            if boundingRect.bottom() - toY < self.minHeight:
+                toY = boundingRect.bottom() - self.minHeight
+            boundingRect.setTop(toY)
+            rect.setTop(boundingRect.top() + offset)
             self.setRect(rect)
         elif self.handleSelected == self.handleBottomMiddle:
             fromY = self.mousePressRect.bottom()
             toY = fromY + mousePos.y() - self.mousePressPos.y()
-            diff.setY(toY - fromY)
+            # Limit ROI height minimum
+            if toY - boundingRect.top() < self.minHeight:
+                toY = boundingRect.top() + self.minHeight
             boundingRect.setBottom(toY)
             rect.setBottom(boundingRect.bottom() - offset)
             self.setRect(rect)
@@ -1010,6 +1021,21 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
             toX = self.mapToScene(mousePos).x()
             toY = self.mapToScene(mousePos).y()
             angle = math.atan2(fromY - toY, fromX - toX) / math.pi * 180 - offAngle
+            # Limit rotation range
+            if angle < -self.maxAngle:
+                if self.angleHold == 0:
+                    angle = -self.maxAngle
+                    self.angleHold = -self.maxAngle
+                else:
+                    angle = self.angleHold
+            elif angle > self.maxAngle:
+                if self.angleHold == 0:
+                    angle = self.maxAngle
+                    self.angleHold = self.maxAngle
+                else:
+                    angle = self.angleHold
+            else:
+                self.angleHold = 0
             self.setRotation(angle)
         # Update related features
         self.updateHandlesPos()
@@ -1022,7 +1048,6 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
                    int(self.mapToScene(self.rect().bottomLeft()).y())),
             'br': (int(self.mapToScene(self.rect().bottomRight()).x()),
                    int(self.mapToScene(self.rect().bottomRight()).y()))}
-        print(roi_data)
 
     def paint(self, painter, option, widget=None):
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -1053,7 +1078,6 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
                        int(self.mapToScene(self.rect().bottomLeft()).y())),
                 'br': (int(self.mapToScene(self.rect().bottomRight()).x()),
                        int(self.mapToScene(self.rect().bottomRight()).y()))}
-            print(roi_data)
         # Default return
         return QtWidgets.QGraphicsRectItem.itemChange(self, change, value)
 
