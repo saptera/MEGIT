@@ -1,7 +1,10 @@
 import os
 import math
 import copy
+import json
 import numpy as np
+import scipy.ndimage as ndi
+import scipy.interpolate as itp
 import cv2.cv2 as cv
 
 
@@ -96,3 +99,99 @@ def img2vid(img_list, vid_name, fps=30, vid_path=None):
         img = cv.imread(i, cv.IMREAD_UNCHANGED)
         videoWriter.write(img)
     return os.path.isfile(vid_file)
+
+
+def jsl_read(js_lbl_file):
+    """ Import a standard JSON label file to a Python list of dictionary.
+
+    Args:
+        js_lbl_file (str): Labelling file contained with labels.
+
+    Returns:
+        list[dict]: List of dictionary with label info.
+    """
+    with open(js_lbl_file) as infile:
+        jsl_data = json.load(infile)
+    return jsl_data
+
+
+def jsl_write(dst_jsl_file, jsl_data):
+    """ Write JSON label data to a standard JSON label file.
+
+    Args:
+        dst_jsl_file (str): Labelling file to be write label data (*.json).
+        jsl_data (list[dict]): List of dictionary with label info.
+
+    Returns:
+        bool: File creation status.
+    """
+    if len(jsl_data) != 0:
+        with open(dst_jsl_file, 'w') as outfile:
+            json.dump(jsl_data, outfile)
+        return True
+    else:
+        print('Empty label data input, file not created!')
+        return False
+
+
+def lin2p(pt1, pt2):
+    """ Get the slope and the intercept of a line defined by 2 points.
+
+    Args:
+        pt1 (tuple[int or float, int or float] or list[int or float, int or float]): 1st point (x1, y1).
+        pt2 (tuple[int or float, int or float] or list[int or float, int or float]): 2nd point (x2, y2).
+
+    Returns:
+        tuple[float, float] or tuple[None, float]: Slope and intercept of defined line
+    """
+    if pt1[0] == pt2[0]:
+        return None, pt1[0]
+    else:
+        k = (pt2[1] - pt1[1]) / (pt2[0] - pt1[0])
+        h = (pt2[0] * pt1[1] - pt1[0] * pt2[1]) / (pt2[0] - pt1[0])
+        return k, h
+
+
+def rel_pos(lin, pt):
+    """ Return relative position between a line and a point.
+
+    Args:
+        lin (tuple[int or float, int or float] or list[int or float, int or float]): Line definition (slope, intercept).
+        pt (tuple[int or float, int or float] or list[int or float, int or float]): Point definition (x, y).
+
+    Returns:
+        int: -1: below the line, 0: on the line, 1: above the line.
+    """
+    if lin[0] is None:
+        return np.sign(pt[0] - lin[1])
+    else:
+        return np.sign(pt[1] - lin[0] * pt[0] - lin[1])
+
+
+def flt_spl(x, window, padding=None):
+    """ Smooth continuous 1D array with median filter and univariate spline.
+
+    Args:
+        x (list or np.ndarray): {1D} Input array.
+        window (int): Window size for median filter.
+        padding (tuple[int or float, int or float] or None): Padding value for edges (default: None - No padding).
+
+    Returns:
+        np.ndarray: {1D} Smoothed array/
+    """
+    # Process edge padding
+    if padding is None:
+        src = np.asarray(x)
+    else:
+        pad_l = [padding[0]] * window
+        pad_r = [padding[1]] * window
+        src = np.concatenate((pad_l, x, pad_r))
+    # Process median filter
+    flt = ndi.median_filter(src, size=window)
+    # Process univariate spline
+    z = np.asarray(list(range(len(src))))
+    spl = itp.UnivariateSpline(z, flt)
+    smt = spl(z)
+    # Arrange output
+    dst = smt if padding is None else smt[window:-window]
+    return dst
