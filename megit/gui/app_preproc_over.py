@@ -182,6 +182,7 @@ class ProcWorker(QtCore.QObject):
                         roi_adj[i][k][pos] = new_pos
 
         # Main process loop
+        roi_id = -1  # Loop first call control
         count = 0  # INIT VAR
         frm_feat = []  # INIT VAR
         tgt_feat = {}  # INIT VAR
@@ -189,45 +190,51 @@ class ProcWorker(QtCore.QObject):
         keep_typ = {1: 'Y', 0: 'E', -1: 'N'}
         for i in range(len(frm_list)):
             # Get current ROI index
-            find_roi_id(i)
+            data_flag = find_roi_id(i)
 
             # Get general frame feature
-            feat_tgt_c = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
-                roi_data[roi_id]['TGT_C']['tl'][0], roi_data[roi_id]['TGT_C']['tl'][1],
-                roi_data[roi_id]['TGT_C']['tr'][0], roi_data[roi_id]['TGT_C']['tr'][1],
-                roi_data[roi_id]['TGT_C']['bl'][0], roi_data[roi_id]['TGT_C']['bl'][1],
-                roi_data[roi_id]['TGT_C']['br'][0], roi_data[roi_id]['TGT_C']['br'][1],)
-            feat_tgt_t = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
-                roi_data[roi_id]['TGT_T']['tl'][0], roi_data[roi_id]['TGT_T']['tl'][1],
-                roi_data[roi_id]['TGT_T']['tr'][0], roi_data[roi_id]['TGT_T']['tr'][1],
-                roi_data[roi_id]['TGT_T']['bl'][0], roi_data[roi_id]['TGT_T']['bl'][1],
-                roi_data[roi_id]['TGT_T']['br'][0], roi_data[roi_id]['TGT_T']['br'][1],)
-            feat_tgt_b = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
-                roi_data[roi_id]['TGT_B']['tl'][0], roi_data[roi_id]['TGT_B']['tl'][1],
-                roi_data[roi_id]['TGT_B']['tr'][0], roi_data[roi_id]['TGT_B']['tr'][1],
-                roi_data[roi_id]['TGT_B']['bl'][0], roi_data[roi_id]['TGT_B']['bl'][1],
-                roi_data[roi_id]['TGT_B']['br'][0], roi_data[roi_id]['TGT_B']['br'][1],)
-            if exp_typ:
-                feat_juv_c = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
-                    roi_data[roi_id]['JUV_C']['tl'][0], roi_data[roi_id]['JUV_C']['tl'][1],
-                    roi_data[roi_id]['JUV_C']['tr'][0], roi_data[roi_id]['JUV_C']['tr'][1],
-                    roi_data[roi_id]['JUV_C']['bl'][0], roi_data[roi_id]['JUV_C']['bl'][1],
-                    roi_data[roi_id]['JUV_C']['br'][0], roi_data[roi_id]['JUV_C']['br'][1],)
-                feat_juv_t = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
-                    roi_data[roi_id]['JUV_T']['tl'][0], roi_data[roi_id]['JUV_T']['tl'][1],
-                    roi_data[roi_id]['JUV_T']['tr'][0], roi_data[roi_id]['JUV_T']['tr'][1],
-                    roi_data[roi_id]['JUV_T']['bl'][0], roi_data[roi_id]['JUV_T']['bl'][1],
-                    roi_data[roi_id]['JUV_T']['br'][0], roi_data[roi_id]['JUV_T']['br'][1],)
-                feat_juv_b = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
-                    roi_data[roi_id]['JUV_B']['tl'][0], roi_data[roi_id]['JUV_B']['tl'][1],
-                    roi_data[roi_id]['JUV_B']['tr'][0], roi_data[roi_id]['JUV_B']['tr'][1],
-                    roi_data[roi_id]['JUV_B']['bl'][0], roi_data[roi_id]['JUV_B']['bl'][1],
-                    roi_data[roi_id]['JUV_B']['br'][0], roi_data[roi_id]['JUV_B']['br'][1],)
-                frm_feat.append([i, keep_typ[frm_list[i]['keep']],
-                                 feat_tgt_c, feat_tgt_t, feat_tgt_b, feat_juv_c, feat_juv_t, feat_juv_b])
+            if data_flag:
+                feat_tgt_c = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
+                    roi_data[roi_id]['TGT_C']['tl'][0], roi_data[roi_id]['TGT_C']['tl'][1],
+                    roi_data[roi_id]['TGT_C']['tr'][0], roi_data[roi_id]['TGT_C']['tr'][1],
+                    roi_data[roi_id]['TGT_C']['bl'][0], roi_data[roi_id]['TGT_C']['bl'][1],
+                    roi_data[roi_id]['TGT_C']['br'][0], roi_data[roi_id]['TGT_C']['br'][1],)
+                feat_tgt_t = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
+                    roi_data[roi_id]['TGT_T']['tl'][0], roi_data[roi_id]['TGT_T']['tl'][1],
+                    roi_data[roi_id]['TGT_T']['tr'][0], roi_data[roi_id]['TGT_T']['tr'][1],
+                    roi_data[roi_id]['TGT_T']['bl'][0], roi_data[roi_id]['TGT_T']['bl'][1],
+                    roi_data[roi_id]['TGT_T']['br'][0], roi_data[roi_id]['TGT_T']['br'][1],)
+                feat_tgt_b = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
+                    roi_data[roi_id]['TGT_B']['tl'][0], roi_data[roi_id]['TGT_B']['tl'][1],
+                    roi_data[roi_id]['TGT_B']['tr'][0], roi_data[roi_id]['TGT_B']['tr'][1],
+                    roi_data[roi_id]['TGT_B']['bl'][0], roi_data[roi_id]['TGT_B']['bl'][1],
+                    roi_data[roi_id]['TGT_B']['br'][0], roi_data[roi_id]['TGT_B']['br'][1],)
+                if exp_typ:
+                    feat_juv_c = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
+                        roi_data[roi_id]['JUV_C']['tl'][0], roi_data[roi_id]['JUV_C']['tl'][1],
+                        roi_data[roi_id]['JUV_C']['tr'][0], roi_data[roi_id]['JUV_C']['tr'][1],
+                        roi_data[roi_id]['JUV_C']['bl'][0], roi_data[roi_id]['JUV_C']['bl'][1],
+                        roi_data[roi_id]['JUV_C']['br'][0], roi_data[roi_id]['JUV_C']['br'][1],)
+                    feat_juv_t = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
+                        roi_data[roi_id]['JUV_T']['tl'][0], roi_data[roi_id]['JUV_T']['tl'][1],
+                        roi_data[roi_id]['JUV_T']['tr'][0], roi_data[roi_id]['JUV_T']['tr'][1],
+                        roi_data[roi_id]['JUV_T']['bl'][0], roi_data[roi_id]['JUV_T']['bl'][1],
+                        roi_data[roi_id]['JUV_T']['br'][0], roi_data[roi_id]['JUV_T']['br'][1],)
+                    feat_juv_b = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
+                        roi_data[roi_id]['JUV_B']['tl'][0], roi_data[roi_id]['JUV_B']['tl'][1],
+                        roi_data[roi_id]['JUV_B']['tr'][0], roi_data[roi_id]['JUV_B']['tr'][1],
+                        roi_data[roi_id]['JUV_B']['bl'][0], roi_data[roi_id]['JUV_B']['bl'][1],
+                        roi_data[roi_id]['JUV_B']['br'][0], roi_data[roi_id]['JUV_B']['br'][1],)
+                    frm_feat.append([i, keep_typ[frm_list[i]['keep']],
+                                     feat_tgt_c, feat_tgt_t, feat_tgt_b, feat_juv_c, feat_juv_t, feat_juv_b])
+                else:
+                    frm_feat.append([i, keep_typ[frm_list[i]['keep']],
+                                     feat_tgt_c, feat_tgt_t, feat_tgt_b, 'None', 'None', 'None'])
             else:
-                frm_feat.append([i, keep_typ[frm_list[i]['keep']],
-                                 feat_tgt_c, feat_tgt_t, feat_tgt_b, 'None', 'None', 'None'])
+                if exp_typ:
+                    frm_feat.append([i, keep_typ[frm_list[i]['keep']], "ibid", "ibid", "ibid", "ibid", "ibid", "ibid"])
+                else:
+                    frm_feat.append([i, keep_typ[frm_list[i]['keep']], "ibid", "ibid", "ibid", 'None', 'None', 'None'])
 
             # Process and save selected frames
             if frm_list[i]['keep'] == 1:
@@ -238,18 +245,24 @@ class ProcWorker(QtCore.QObject):
                     img = draw_text(img, frm_dig % i, txt_xval, txt_yval, txt_size, txt_linc, txt_hbkg, txt_bkgc)
                 cv.imwrite(os.path.join(frm_dir, "frm_" + frm_dig % i + ".png"), img)
                 # Process target animal region
-                tgt_feat[i] = {'C': copy.deepcopy(roi_adj[roi_id]['TGT_C']),
-                               'T': copy.deepcopy(roi_adj[roi_id]['TGT_T']),
-                               'B': copy.deepcopy(roi_adj[roi_id]['TGT_B'])}
+                if data_flag:
+                    tgt_feat[i] = {'C': copy.deepcopy(roi_adj[roi_id]['TGT_C']),
+                                   'T': copy.deepcopy(roi_adj[roi_id]['TGT_T']),
+                                   'B': copy.deepcopy(roi_adj[roi_id]['TGT_B'])}
+                else:
+                    tgt_feat[i] = {'C': None, 'T': None, 'B': None}
                 tgt = img[roi_crop[roi_id]['TGT'][2]:roi_crop[roi_id]['TGT'][3],
                           roi_crop[roi_id]['TGT'][0]:roi_crop[roi_id]['TGT'][1]]
                 tgt = cv.resize(tgt, (256, 256), interpolation=cv.INTER_AREA)
                 cv.imwrite(os.path.join(tgt_dir, "tst_" + frm_dig % i + ".png"), tgt)
                 # Process juvenile animal region
                 if exp_typ:
-                    juv_feat[i] = {'C': copy.deepcopy(roi_adj[roi_id]['JUV_C']),
-                                   'T': copy.deepcopy(roi_adj[roi_id]['JUV_T']),
-                                   'B': copy.deepcopy(roi_adj[roi_id]['JUV_B'])}
+                    if data_flag:
+                        juv_feat[i] = {'C': copy.deepcopy(roi_adj[roi_id]['JUV_C']),
+                                       'T': copy.deepcopy(roi_adj[roi_id]['JUV_T']),
+                                       'B': copy.deepcopy(roi_adj[roi_id]['JUV_B'])}
+                    else:
+                        juv_feat[i] = {'C': None, 'T': None, 'B': None}
                     juv = img[roi_crop[roi_id]['JUV'][2]:roi_crop[roi_id]['JUV'][3],
                               roi_crop[roi_id]['JUV'][0]:roi_crop[roi_id]['JUV'][1]]
                     juv = cv.resize(juv, (256, 256), interpolation=cv.INTER_AREA)
