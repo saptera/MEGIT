@@ -16,6 +16,7 @@ from megit.gui.dgn_preproc_load import Ui_MainLoader
 # Global definitions  -----------------------------------------------------------------------------------------------  #
 # Define a class to handle cross window signals
 class ComSig(QtCore.QObject):
+    win_stat_sig = QtCore.pyqtSignal(QtCore.Qt.WindowStates)  # Cross window state settings
     frm_ctrl_sig = QtCore.pyqtSignal(int)  # Frame selection operation synchronizer
     frm_info_sig = QtCore.pyqtSignal(int, str)  # Current frame information messenger
     mkr_disp_sig = QtCore.pyqtSignal()  # Marker display messenger
@@ -349,6 +350,11 @@ class ControlViewer(QtWidgets.QMainWindow, Ui_ControlViewer):
                 QtWidgets.QMainWindow.keyPressEvent(self, event)
         else:
             QtWidgets.QMainWindow.keyPressEvent(self, event)
+
+    # Window status synchronization signal
+    def changeEvent(self, event):
+        com_sig.win_stat_sig.emit(self.windowState())
+        QtWidgets.QMainWindow.changeEvent(self, event)
 
     def __status_report(self):
         self.statusBar.showMessage(mkr_msg + frm_msg)
@@ -1211,6 +1217,7 @@ class FrameViewer(QtWidgets.QMainWindow, Ui_FrameViewer):
         self.scene = LabelScene(self)
         com_sig.frm_info_sig.connect(self.__frame_loader)
         # Status signal receiver
+        com_sig.win_stat_sig.connect(self.__set_win_stat)
         com_sig.frm_info_sig.connect(self.__status_report)
         com_sig.mkr_info_sig.connect(self.__status_report)
 
@@ -1225,6 +1232,10 @@ class FrameViewer(QtWidgets.QMainWindow, Ui_FrameViewer):
                 QtWidgets.QMainWindow.keyPressEvent(self, event)
         else:
             QtWidgets.QMainWindow.keyPressEvent(self, event)
+
+    # Synchronize window status
+    def __set_win_stat(self, stat):
+        self.setWindowState(stat)
 
     def __status_report(self):
         self.statusBar.showMessage(mkr_msg + frm_msg)
@@ -1275,7 +1286,7 @@ class MainLoader(QtWidgets.QMainWindow, Ui_MainLoader):
         super(MainLoader, self).__init__(parent)
         self.setupUi(self)
         self.controlWindow = ControlViewer()
-        self.frameWindow = FrameViewer(self.controlWindow)
+        self.frameWindow = FrameViewer(self)
 
         self.videoButton.clicked.connect(self.__video_selection)
         self.outputButton.clicked.connect(self.__output_selection)
