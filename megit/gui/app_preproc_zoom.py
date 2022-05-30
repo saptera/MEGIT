@@ -7,6 +7,11 @@ from megit.gui.dgn_preprocz_ctrl import Ui_ControlViewer
 from megit.gui.dgn_preproc_frmv import Ui_FrameViewer
 from megit.gui.dgn_preproc_load import Ui_MainLoader
 
+if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
+if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
+
 
 # Global definitions  -----------------------------------------------------------------------------------------------  #
 # Define a class to handle cross window signals
