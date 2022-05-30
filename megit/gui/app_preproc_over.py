@@ -1305,7 +1305,7 @@ class MainLoader(QtWidgets.QMainWindow, Ui_MainLoader):
 
     # Main loading function
     def __loading_func(self):
-        global vid_cap, out_dir, frm_dig, frm_list, loaded
+        global vid_cap, out_dir, frm_num, frm_dig, frm_list, loaded
         # Verify GUI inputs
         flag = False
         err_msg = str()
@@ -1342,5 +1342,6 @@ class MainLoader(QtWidgets.QMainWindow, Ui_MainLoader):
                 frm_list.append(copy.deepcopy(frm_feat))
             # Set status, send signal
             loaded = True
+            frm_num = self.controlWindow.totfrmBox.value()
             frm_dig = '%%0%dd' % int(math.log10(vid_cap.get(cv.CAP_PROP_FRAME_COUNT)) + 1)
             com_sig.frm_info_sig.emit(0, " | Current frame: 0 | Progress: 0 of %d 0.00%%)" % vid_cap.get(7))
