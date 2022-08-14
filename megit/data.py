@@ -177,7 +177,7 @@ def flt_spl(x, window, padding=None):
         padding (tuple[int or float, int or float] or None): Padding value for edges (default: None - No padding).
 
     Returns:
-        np.ndarray: {1D} Smoothed array/
+        np.ndarray: {1D} Smoothed array.
     """
     # Process edge padding
     if padding is None:
@@ -195,3 +195,35 @@ def flt_spl(x, window, padding=None):
     # Arrange output
     dst = smt if padding is None else smt[window:-window]
     return dst
+
+
+def cross_detect(crs_lst, th=6):
+    """ Detect animal crossing behaviour.
+
+    Args:
+        crs_lst (list): Input array of ROI cross.
+        th (int): Threshold size for detection.
+
+    Returns:
+        list[list[int, int]]: Detected crossing behaviour.
+    """
+    accu = 0  # INIT VAR
+    started = False  # INIT VAR
+    init = 0  # INIT VAR
+    crs_range = []  # INIT VAR
+    for n in range(len(crs_lst) - th):
+        # Compute window value
+        if n == 0:
+            accu = sum(crs_lst[0:th])
+        else:
+            accu = accu - crs_lst[n - 1] + crs_lst[n + th - 1]
+        # Check crossing
+        if started:
+            if accu == 0:
+                started = False
+                crs_range.append([init, n])
+        else:
+            if accu >= th:
+                started = True
+                init = n
+    return crs_range
