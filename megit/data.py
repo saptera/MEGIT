@@ -153,19 +153,26 @@ def lin2p(pt1, pt2):
 
 
 def rel_pos(lin, pt):
-    """ Return relative position between a line and a point.
+    """ Return relative position and distance from a point to a line.
 
     Args:
         lin (tuple[int or float, int or float] or list[int or float, int or float]): Line definition (slope, intercept).
         pt (tuple[int or float, int or float] or list[int or float, int or float]): Point definition (x, y).
 
     Returns:
-        int: -1: below the line, 0: on the line, 1: above the line.
+        tuple[int, float]:
+            - sign (int): -1: below the line, 0: on the line, 1: above the line.
+            - dist (float): Distance from the point to the line
     """
     if lin[0] is None:
-        return np.sign(pt[0] - lin[1])
+        val = pt[0] - lin[1]
+        sign = np.sign(val).item()
+        dist = abs(val)
     else:
-        return np.sign(pt[1] - lin[0] * pt[0] - lin[1])
+        val = pt[1] - lin[0] * pt[0] - lin[1]
+        sign = np.sign(val).item()
+        dist = abs(val) / np.sqrt(lin[0] ** 2 + 1).item()
+    return sign, dist
 
 
 def flt_spl(x, window, padding=None):
