@@ -153,26 +153,43 @@ def lin2p(pt1, pt2):
 
 
 def rel_pos(lin, pt):
-    """ Return relative position and distance from a point to a line.
+    """ Return distance from a point to a line.
 
     Args:
         lin (tuple[int or float, int or float] or list[int or float, int or float]): Line definition (slope, intercept).
         pt (tuple[int or float, int or float] or list[int or float, int or float]): Point definition (x, y).
 
     Returns:
-        tuple[int, float]:
-            - sign (int): -1: below the line, 0: on the line, 1: above the line.
-            - dist (float): Distance from the point to the line
+        float: Distance from the point to the line, negative: below the line, 0: on the line, positive: above the line.
     """
     if lin[0] is None:
-        val = pt[0] - lin[1]
-        sign = np.sign(val).item()
-        dist = abs(val)
+        dist = pt[0] - lin[1]
     else:
-        val = pt[1] - lin[0] * pt[0] - lin[1]
-        sign = np.sign(val).item()
-        dist = abs(val) / np.sqrt(lin[0] ** 2 + 1).item()
-    return sign, dist
+        dist = (pt[1] - lin[0] * pt[0] - lin[1]) / np.sqrt(lin[0] ** 2 + 1).item()
+    return dist
+
+
+def poly_lin_poschk(lin, poly, th=0, sup=True):
+    """ Check if a polygon has a relative position that meet the defined threshold.
+
+    Args:
+        lin (tuple[int or float, int or float] or list[int or float, int or float]): Line definition (slope, intercept).
+        poly (list[tuple[int or float, int or float]]): Point (x, y) list defined polygon.
+        th (int or float): Threshold.
+        sup (bool): True: above threshold, False: below threshold.
+
+    Returns:
+        bool: Checked status.
+    """
+    for pt in poly:
+        dist = rel_pos(lin, pt)
+        if sup:
+            if dist <= th:
+                return False
+        else:
+            if dist >= th:
+                return False
+    return True
 
 
 def flt_spl(x, window, padding=None):
