@@ -899,14 +899,14 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
         if lid not in roi_data:
             roi_data[lid] = {}
         roi_data[lid][ltg] = {
-            'tl': (int(self.mapToScene(self.rect().topLeft()).x()),
-                   int(self.mapToScene(self.rect().topLeft()).y())),
-            'tr': (int(self.mapToScene(self.rect().topRight()).x()),
-                   int(self.mapToScene(self.rect().topRight()).y())),
-            'bl': (int(self.mapToScene(self.rect().bottomLeft()).x()),
-                   int(self.mapToScene(self.rect().bottomLeft()).y())),
-            'br': (int(self.mapToScene(self.rect().bottomRight()).x()),
-                   int(self.mapToScene(self.rect().bottomRight()).y()))}
+            'tl': (self.mapToScene(self.rect().topLeft()).x(),
+                   self.mapToScene(self.rect().topLeft()).y()),
+            'tr': (self.mapToScene(self.rect().topRight()).x(),
+                   self.mapToScene(self.rect().topRight()).y()),
+            'bl': (self.mapToScene(self.rect().bottomLeft()).x(),
+                   self.mapToScene(self.rect().bottomLeft()).y()),
+            'br': (self.mapToScene(self.rect().bottomRight()).x(),
+                   self.mapToScene(self.rect().bottomRight()).y())}
 
     # Define a UserType for label items
     def type(self):
@@ -1059,14 +1059,14 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
         # Update related features
         self.updateHandlesPos()
         roi_data[self.data(0)][self.data(1)] = {
-            'tl': (int(self.mapToScene(self.rect().topLeft()).x()),
-                   int(self.mapToScene(self.rect().topLeft()).y())),
-            'tr': (int(self.mapToScene(self.rect().topRight()).x()),
-                   int(self.mapToScene(self.rect().topRight()).y())),
-            'bl': (int(self.mapToScene(self.rect().bottomLeft()).x()),
-                   int(self.mapToScene(self.rect().bottomLeft()).y())),
-            'br': (int(self.mapToScene(self.rect().bottomRight()).x()),
-                   int(self.mapToScene(self.rect().bottomRight()).y()))}
+            'tl': (self.mapToScene(self.rect().topLeft()).x(),
+                   self.mapToScene(self.rect().topLeft()).y()),
+            'tr': (self.mapToScene(self.rect().topRight()).x(),
+                   self.mapToScene(self.rect().topRight()).y()),
+            'bl': (self.mapToScene(self.rect().bottomLeft()).x(),
+                   self.mapToScene(self.rect().bottomLeft()).y()),
+            'br': (self.mapToScene(self.rect().bottomRight()).x(),
+                   self.mapToScene(self.rect().bottomRight()).y())}
 
     def paint(self, painter, option, widget=None):
         painter.setRenderHint(QtGui.QPainter.Antialiasing)
@@ -1089,14 +1089,14 @@ class RegionRect(QtWidgets.QGraphicsRectItem):
         # Generate a report when label item changed in position
         if change == QtWidgets.QGraphicsItem.ItemPositionHasChanged:
             roi_data[self.data(0)][self.data(1)] = {
-                'tl': (int(self.mapToScene(self.rect().topLeft()).x()),
-                       int(self.mapToScene(self.rect().topLeft()).y())),
-                'tr': (int(self.mapToScene(self.rect().topRight()).x()),
-                       int(self.mapToScene(self.rect().topRight()).y())),
-                'bl': (int(self.mapToScene(self.rect().bottomLeft()).x()),
-                       int(self.mapToScene(self.rect().bottomLeft()).y())),
-                'br': (int(self.mapToScene(self.rect().bottomRight()).x()),
-                       int(self.mapToScene(self.rect().bottomRight()).y()))}
+                'tl': (self.mapToScene(self.rect().topLeft()).x(),
+                       self.mapToScene(self.rect().topLeft()).y()),
+                'tr': (self.mapToScene(self.rect().topRight()).x(),
+                       self.mapToScene(self.rect().topRight()).y()),
+                'bl': (self.mapToScene(self.rect().bottomLeft()).x(),
+                       self.mapToScene(self.rect().bottomLeft()).y()),
+                'br': (self.mapToScene(self.rect().bottomRight()).x(),
+                       self.mapToScene(self.rect().bottomRight()).y())}
         # Default return
         return QtWidgets.QGraphicsRectItem.itemChange(self, change, value)
 
