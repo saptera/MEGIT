@@ -36,7 +36,7 @@ frm_list = []  # Frame selection list
 mk_mode = 'NONE'  # Current marking mode
 roi_id = 0  # ROI item unique IDs
 roi_grp = [0]  # ROI item group
-color_palette = {'TGT_C': (0, 158, 115), 'TGT_T': (0, 114, 178), 'TGT_B': (213, 94, 0), 'TGT_W': (150, 150, 150),
+color_palette = {'TGT_C': (0, 158, 115), 'TGT_T': (0, 114, 178), 'TGT_B': (213, 94, 0), 'TGT_W': (75, 0, 146),
                  'JUV_C': (204, 121, 167), 'JUV_T': (86, 180, 233), 'JUV_B': (230, 159, 0)}  # Colourblind safe palette
 mkr_vis = True  # Marker visibility flag
 mkr_msg = "No Marker Selected"  # Information message of current label
@@ -269,7 +269,7 @@ class ControlViewer(QtWidgets.QMainWindow, Ui_ControlViewer):
 
     # Main process function
     def __start_func(self):
-        global ani_typ, roi_dir, roi_frm, roi_grp, roi_data
+        global ani_typ, roi_dir, roi_frm, roi_grp, roi_id, roi_data
         # Checking missing ROIs
         err_flag = False
         if len(roi_data) == 0:
@@ -299,6 +299,7 @@ class ControlViewer(QtWidgets.QMainWindow, Ui_ControlViewer):
         prop_name = "juv_prop.json" if ani_typ else "tst_prop.json"
         prop_feat = {}  # INIT VAR
         # Arrange ROI data
+        roi_id = -1  # Loop first call control
         for i in range(len(roi_frm)):
             if find_roi_id(i):
                 if ani_typ:
@@ -311,7 +312,10 @@ class ControlViewer(QtWidgets.QMainWindow, Ui_ControlViewer):
                                     'B': copy.deepcopy(roi_data[roi_id]['TGT_B']),
                                     'W': copy.deepcopy(roi_data[roi_id]['TGT_W'])}
             else:
-                prop_feat[i] = {'C': None, 'T': None, 'B': None}
+                if ani_typ:
+                    prop_feat[i] = {'C': None, 'T': None, 'B': None}
+                else:
+                    prop_feat[i] = {'C': None, 'T': None, 'B': None, 'W': None}
         # Write ROI file
         with open(os.path.join(roi_dir, prop_name), 'w', encoding='utf-8') as prop_file:
             json.dump(prop_feat, prop_file, ensure_ascii=False)
@@ -892,6 +896,7 @@ class MainLoader(QtWidgets.QMainWindow, Ui_MainLoader):
                     roi_frm = copy.deepcopy(temp_flst)
                 self.controlWindow.tgtButton.setDisabled(ani_typ)
                 self.controlWindow.juvButton.setEnabled(ani_typ)
+                self.controlWindow.juvButton.setChecked(ani_typ)
                 self.controlWindow.frameSlider.setMaximum(len(roi_grp) - 1)
                 self.controlWindow.sliderValue.setMaximum(len(roi_grp) - 1)
             # Initialize frame processing list
