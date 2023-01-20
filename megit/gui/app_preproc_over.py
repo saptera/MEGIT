@@ -40,7 +40,7 @@ frm_list = []  # Frame selection list
 mk_mode = 'NONE'  # Current marking mode
 roi_id = 0  # ROI item unique IDs
 roi_grp = [0]  # ROI item group
-color_palette = {'TGT_C': (0, 158, 115), 'TGT_T': (0, 114, 178), 'TGT_B': (213, 94, 0),
+color_palette = {'TGT_C': (0, 158, 115), 'TGT_T': (0, 114, 178), 'TGT_B': (213, 94, 0), 'TGT_W': (75, 0, 146),
                  'JUV_C': (204, 121, 167), 'JUV_T': (86, 180, 233), 'JUV_B': (230, 159, 0)}  # Colourblind safe palette
 mkr_vis = True  # Marker visibility flag
 mkr_msg = "No Marker Selected"  # Information message of current label
@@ -142,15 +142,15 @@ class ProcWorker(QtCore.QObject):
             juv_b = 0  # INIT/RESET VAR
             for k in roi_data[i]:
                 if k.startswith('TGT'):
-                    tgt_l = min(roi_data[i][k]['tl'][0] - 5, roi_data[i][k]['bl'][0] - 5, tgt_l)
-                    tgt_r = max(roi_data[i][k]['tr'][0] + 5, roi_data[i][k]['br'][0] + 5, tgt_r)
-                    tgt_t = min(roi_data[i][k]['tl'][1] - 5, roi_data[i][k]['tr'][1] - 5, tgt_t)
-                    tgt_b = max(roi_data[i][k]['bl'][1] + 5, roi_data[i][k]['br'][1] + 5, tgt_b)
+                    tgt_l = round(min(roi_data[i][k]['tl'][0] - 5, roi_data[i][k]['bl'][0] - 5, tgt_l))
+                    tgt_r = round(max(roi_data[i][k]['tr'][0] + 5, roi_data[i][k]['br'][0] + 5, tgt_r))
+                    tgt_t = round(min(roi_data[i][k]['tl'][1] - 5, roi_data[i][k]['tr'][1] - 5, tgt_t))
+                    tgt_b = round(max(roi_data[i][k]['bl'][1] + 5, roi_data[i][k]['br'][1] + 5, tgt_b))
                 if exp_typ and k.startswith('JUV'):
-                    juv_l = min(roi_data[i][k]['tl'][0] - 5, roi_data[i][k]['bl'][0] - 5, juv_l)
-                    juv_r = max(roi_data[i][k]['tr'][0] + 5, roi_data[i][k]['br'][0] + 5, juv_r)
-                    juv_t = min(roi_data[i][k]['tl'][1] - 5, roi_data[i][k]['tr'][1] - 5, juv_t)
-                    juv_b = max(roi_data[i][k]['bl'][1] + 5, roi_data[i][k]['br'][1] + 5, juv_b)
+                    juv_l = round(min(roi_data[i][k]['tl'][0] - 50, roi_data[i][k]['bl'][0] - 50, juv_l))
+                    juv_r = round(max(roi_data[i][k]['tr'][0] + 5, roi_data[i][k]['br'][0] + 5, juv_r))
+                    juv_t = round(min(roi_data[i][k]['tl'][1] - 5, roi_data[i][k]['tr'][1] - 5, juv_t))
+                    juv_b = round(max(roi_data[i][k]['bl'][1] + 5, roi_data[i][k]['br'][1] + 5, juv_b))
             if exp_typ:
                 roi_crop[i] = {'TGT': [max(tgt_l, 0), min(tgt_r, width), max(tgt_t, 0), min(tgt_b, height)],
                                'JUV': [max(juv_l, 0), min(juv_r, width), max(juv_t, 0), min(juv_b, height)]}
@@ -177,14 +177,14 @@ class ProcWorker(QtCore.QObject):
                     for pos in roi_data[i][k]:
                         crop = np.array([roi_data[i][k][pos][0] - roi_crop[i]['TGT'][0],
                                          roi_data[i][k][pos][1] - roi_crop[i]['TGT'][2]])
-                        new_pos = [int(pt) for pt in (resize_mat['TGT'] * crop)]
+                        new_pos = [pt.item() for pt in (resize_mat['TGT'] * crop)]
                         roi_adj[i][k][pos] = new_pos
                 if exp_typ and k.startswith('JUV'):
                     roi_adj[i][k] = {}
                     for pos in roi_data[i][k]:
                         crop = np.array([roi_data[i][k][pos][0] - roi_crop[i]['JUV'][0],
                                          roi_data[i][k][pos][1] - roi_crop[i]['JUV'][2]])
-                        new_pos = [int(pt) for pt in (resize_mat['JUV'] * crop)]
+                        new_pos = [pt.item() for pt in (resize_mat['JUV'] * crop)]
                         roi_adj[i][k][pos] = new_pos
 
         # Main process loop
@@ -215,6 +215,11 @@ class ProcWorker(QtCore.QObject):
                     roi_data[roi_id]['TGT_B']['tr'][0], roi_data[roi_id]['TGT_B']['tr'][1],
                     roi_data[roi_id]['TGT_B']['bl'][0], roi_data[roi_id]['TGT_B']['bl'][1],
                     roi_data[roi_id]['TGT_B']['br'][0], roi_data[roi_id]['TGT_B']['br'][1],)
+                feat_tgt_w = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
+                    roi_data[roi_id]['TGT_W']['tl'][0], roi_data[roi_id]['TGT_W']['tl'][1],
+                    roi_data[roi_id]['TGT_W']['tr'][0], roi_data[roi_id]['TGT_W']['tr'][1],
+                    roi_data[roi_id]['TGT_W']['bl'][0], roi_data[roi_id]['TGT_W']['bl'][1],
+                    roi_data[roi_id]['TGT_W']['br'][0], roi_data[roi_id]['TGT_W']['br'][1],)
                 if exp_typ:
                     feat_juv_c = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
                         roi_data[roi_id]['JUV_C']['tl'][0], roi_data[roi_id]['JUV_C']['tl'][1],
@@ -231,16 +236,18 @@ class ProcWorker(QtCore.QObject):
                         roi_data[roi_id]['JUV_B']['tr'][0], roi_data[roi_id]['JUV_B']['tr'][1],
                         roi_data[roi_id]['JUV_B']['bl'][0], roi_data[roi_id]['JUV_B']['bl'][1],
                         roi_data[roi_id]['JUV_B']['br'][0], roi_data[roi_id]['JUV_B']['br'][1],)
-                    frm_feat.append([i, keep_typ[frm_list[i]['keep']],
-                                     feat_tgt_c, feat_tgt_t, feat_tgt_b, feat_juv_c, feat_juv_t, feat_juv_b])
+                    frm_feat.append([i, keep_typ[frm_list[i]['keep']], feat_tgt_c, feat_tgt_t, feat_tgt_b, feat_tgt_w,
+                                     feat_juv_c, feat_juv_t, feat_juv_b])
                 else:
-                    frm_feat.append([i, keep_typ[frm_list[i]['keep']],
-                                     feat_tgt_c, feat_tgt_t, feat_tgt_b, 'None', 'None', 'None'])
+                    frm_feat.append([i, keep_typ[frm_list[i]['keep']], feat_tgt_c, feat_tgt_t, feat_tgt_b, feat_tgt_w,
+                                     'None', 'None', 'None'])
             else:
                 if exp_typ:
-                    frm_feat.append([i, keep_typ[frm_list[i]['keep']], "ibid", "ibid", "ibid", "ibid", "ibid", "ibid"])
+                    frm_feat.append([i, keep_typ[frm_list[i]['keep']],
+                                     "ibid", "ibid", "ibid", "ibid", "ibid", "ibid", "ibid"])
                 else:
-                    frm_feat.append([i, keep_typ[frm_list[i]['keep']], "ibid", "ibid", "ibid", 'None', 'None', 'None'])
+                    frm_feat.append([i, keep_typ[frm_list[i]['keep']],
+                                     "ibid", "ibid", "ibid", "ibid", 'None', 'None', 'None'])
 
             # Process and save selected frames
             if frm_list[i]['keep'] == 1:
@@ -254,9 +261,10 @@ class ProcWorker(QtCore.QObject):
                 if data_flag:
                     tgt_feat[i] = {'C': copy.deepcopy(roi_adj[roi_id]['TGT_C']),
                                    'T': copy.deepcopy(roi_adj[roi_id]['TGT_T']),
-                                   'B': copy.deepcopy(roi_adj[roi_id]['TGT_B'])}
+                                   'B': copy.deepcopy(roi_adj[roi_id]['TGT_B']),
+                                   'W': copy.deepcopy(roi_adj[roi_id]['TGT_W'])}
                 else:
-                    tgt_feat[i] = {'C': None, 'T': None, 'B': None}
+                    tgt_feat[i] = {'C': None, 'T': None, 'B': None, 'W': None}
                 tgt = img[roi_crop[roi_id]['TGT'][2]:roi_crop[roi_id]['TGT'][3],
                           roi_crop[roi_id]['TGT'][0]:roi_crop[roi_id]['TGT'][1]]
                 tgt = cv.resize(tgt, (256, 256), interpolation=cv.INTER_AREA)
@@ -635,6 +643,11 @@ class ControlViewer(QtWidgets.QMainWindow, Ui_ControlViewer):
             mkr_msg = "Current Marker: Test Animal - Bottom"
             com_sig.mkr_info_sig.emit(0, 2, mk_mode)
             self.juvBox.setCurrentIndex(0)  # Disable juvenile animal labelling
+        elif self.tgtBox.currentIndex() == 4:
+            mk_mode = 'TGT_W'
+            mkr_msg = "Current Marker: Test Animal - Wall"
+            com_sig.mkr_info_sig.emit(0, 3, mk_mode)
+            self.juvBox.setCurrentIndex(0)  # Disable juvenile animal labelling
         else:
             if self.juvBox.currentIndex() == 0:  # Set signal to 'NONE' if both TGT/JUV disabled
                 mk_mode = 'NONE'
@@ -771,7 +784,8 @@ class ControlViewer(QtWidgets.QMainWindow, Ui_ControlViewer):
         else:
             err_msg = "Missing following ROIs:\n"
             err_dic = {'JUV_B': "Juvenile - Bottom", 'JUV_C': "Juvenile - Gap", 'JUV_T': "Juvenile - Top",
-                       'TGT_B': "Test Animal - Bottom", 'TGT_C': "Test Animal - Gap", 'TGT_T': "Test Animal - Top"}
+                       'TGT_B': "Test Animal - Bottom", 'TGT_C': "Test Animal - Gap", 'TGT_T': "Test Animal - Top",
+                       'TGT_W': "Test Animal - Wall"}
             for i in roi_data:
                 if exp_typ:
                     for k in ['TGT_C', 'TGT_T', 'TGT_B', 'JUV_C', 'JUV_T', 'JUV_B']:
@@ -779,7 +793,7 @@ class ControlViewer(QtWidgets.QMainWindow, Ui_ControlViewer):
                             err_flag = True
                             err_msg += "  Frame - %d : %s\n" % (roi_grp[i], err_dic[k])
                 else:
-                    for k in ['TGT_C', 'TGT_T', 'TGT_B']:
+                    for k in ['TGT_C', 'TGT_T', 'TGT_B', 'TGT_W']:
                         if k not in roi_data[i]:
                             err_flag = True
                             err_msg += "  Frame - %d : %s\n" % (roi_grp[i], err_dic[k])
