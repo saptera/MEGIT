@@ -1,13 +1,16 @@
 import os
 import math
 import copy
-import zlib
-import pickle as pkl
+import base64
 import json
+import zlib
+import hashlib
+import pickle as pkl
 import numpy as np
 import scipy.ndimage as ndi
 import scipy.interpolate as itp
 import cv2.cv2 as cv
+import warnings
 
 """Function list:
   # Image/Video processing functions
@@ -20,6 +23,9 @@ import cv2.cv2 as cv
     jsl_write(dst_jsl_file, jsl_data):  Write JSON label data to a standard JSON label file.
     hml_read(hm_lbl_file):  Import a PICKLE HeatMap label file to a Python list of dictionary.
     hml_write(dst_hml_file, hml_data):  Write HeatMap label data to a PICKLE label file.
+  # Label file IO functions
+    cjsh_read(file): Compressed JSON with Secure Hash embedded (CJSH) file, reading function.
+    cjsh_write(file, data): Compressed JSON with Secure Hash embedded (CJSH) file, writing function.
   # Label data structure conversion functions
     get_lbl_det(area, circularity, inertia, convexity): Generate a detector for extracting blobs from 2D matrix.
     conv_hm2js_blob(hml_data, detector): Convert JSON type label to HeatMap type label with simple blob detector.
@@ -202,6 +208,57 @@ def hml_write(dst_hml_file, hml_data):
         return True
     else:
         print('Empty label data input, file not created!')
+        return False
+
+
+# Label file IO functions -------------------------------------------------------------------------------------------- #
+
+def cjsh_read(file):
+    """ Compressed JSON with Secure Hash embedded (CJSH) file, reading function.
+
+    Args:
+        file (str): File contained compressed JSON data (*.*)
+
+    Returns:
+        Imported data
+    """
+    # Read data from the file
+    with open(file, 'r') as infile:
+        indata = json.load(infile)
+    # Decode the data and compute the hash value
+    serialized = zlib.decompress(base64.b64decode(indata['arc'].encode('ascii')))
+    checksum = hashlib.sha256(serialized).hexdigest()
+    # Verify and output the decoded data
+    if checksum == indata['cks']:
+        data = json.loads(serialized.decode('utf-8'))
+    else:
+        warnings.warn('Data corrupted in file: %s!' % file, Warning, stacklevel=2)
+        data = None
+    return data
+
+
+def cjsh_write(file, data):
+    """ Compressed JSON with Secure Hash embedded (CJSH) file, writing function.
+
+    Args:
+        file (str): Output file name
+        data: Any type of data that is JSON serializable
+
+    Returns:
+        bool: File creation status
+    """
+    # Serialize input data to JSON format
+    serialized = json.dumps(data, skipkeys=False, ensure_ascii=False, allow_nan=True).encode('utf-8')
+    # Compress and hash the serialized data
+    compressed = base64.b64encode(zlib.compress(serialized, level=9)).decode('ascii')
+    checksum = hashlib.sha256(serialized).hexdigest()
+    # Write to the file
+    try:
+        with open(file, 'w') as outfile:
+            json.dump({'arc': compressed, 'cks': checksum}, outfile)
+        return True
+    except OSError as x:
+        warnings.warn("[Errno %d] when writing file '%s': %s" % (x.errno, file, x.strerror), Warning, stacklevel=2)
         return False
 
 
