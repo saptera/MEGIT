@@ -1,16 +1,21 @@
 import sys
 import os
 
+"""Function list:
+    mk_outdir(out_dir, err_msg='Invalid output directory!'): Create an output directory for data.
+    prog_print(iteration, total, prefix=str(), suffix=str()): Create a terminal progress bar for a loop.
+"""
+
 
 def mk_outdir(out_dir, err_msg='Invalid output directory!'):
     """Create an output directory for data.
 
     Args:
-        out_dir (str): Output directory.
-        err_msg (str): Error message when creation error happens.
+        out_dir (str): Output directory
+        err_msg (str): Error message when creation error happens
 
     Returns:
-        str: Created output directory.
+        str: Created output directory
     """
     if not os.path.isdir(out_dir):    # Check if folder exists
         try:
@@ -25,10 +30,10 @@ def prog_print(iteration, total, prefix=str(), suffix=str()):
     """Create a terminal progress bar for a loop.
 
     Args:
-        iteration (int): Current iteration.
-        total (int): Total iterations.
-        prefix (str): Prefix string of progress bar (default: str()).
-        suffix (str): Suffix string of progress bar (default: str()).
+        iteration (int): Current iteration
+        total (int): Total iterations
+        prefix (str): Prefix string of progress bar (default: str())
+        suffix (str): Suffix string of progress bar (default: str())
 
     Returns:
     """
@@ -37,6 +42,7 @@ def prog_print(iteration, total, prefix=str(), suffix=str()):
     length = 50  # Character length of bar
     fill = '>'  # Bar fill character
     # Create percentage bar
+    iteration += 1
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / total))
     filled = int(length * iteration // total)
     bar = fill * filled + '-' * (length - filled)
