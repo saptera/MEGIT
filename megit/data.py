@@ -1,31 +1,15 @@
-import os
 import math
 import copy
-import base64
-import json
-import zlib
-import hashlib
-import pickle as pkl
 import numpy as np
 import scipy.ndimage as ndi
 import scipy.interpolate as itp
 import cv2.cv2 as cv
-import warnings
 
 """Function list:
   # Image/Video processing functions
     get_frm(vid_cap, frm_idx): Get specified frame of video file.
     brt_con(img, brt=0, con=0): Adjust image brightness and contrast.
     draw_text(img, text, x=0, y=0, scale=1, color='w', has_bkg=True, background='b'): Put text with background.
-    img2vid(img_list, vid_name, fps=30, vid_path=None): Create a lossless AVI video file with given images.
-  # Legacy label file IO functions
-    jsl_read(js_lbl_file):  Import a standard JSON label file to a Python list of dictionary.
-    jsl_write(dst_jsl_file, jsl_data):  Write JSON label data to a standard JSON label file.
-    hml_read(hm_lbl_file):  Import a PICKLE HeatMap label file to a Python list of dictionary.
-    hml_write(dst_hml_file, hml_data):  Write HeatMap label data to a PICKLE label file.
-  # Label file IO functions
-    cjsh_read(file): Compressed JSON with Secure Hash embedded (CJSH) file, reading function.
-    cjsh_write(file, data): Compressed JSON with Secure Hash embedded (CJSH) file, writing function.
   # Label data structure conversion functions
     get_lbl_det(area, circularity, inertia, convexity): Generate a detector for extracting blobs from 2D matrix.
     conv_hm2js_blob(hml_data, detector): Convert JSON type label to HeatMap type label with simple blob detector.
@@ -114,152 +98,6 @@ def draw_text(img, text, x=0, y=0, scale=1, color=(255, 255, 255), has_bkg=True,
         cv.rectangle(dst, (x, y), (x + text_size[0] + 4, y + text_size[1] + 8), background, -1)
     cv.putText(dst, text, (x + 2, y + text_size[1] + 4), cv.FONT_HERSHEY_SIMPLEX, scale, color, thickness=thickness)
     return dst
-
-
-def img2vid(img_list, vid_name, fps=30, vid_path=None):
-    """Create a lossless AVI video file with given images.
-
-    Args:
-        img_list (list[str]): List of image files to create a video
-        vid_name (str): Output video name, without extension
-        fps (int or float): Output video frame rate (default: 30)
-        vid_path (str or None): Output video path, use [img_path] when set to emptystring or None (default: None)
-
-    Returns:
-        (bool): True if video successfully created
-    """
-    # Get video information
-    vid_path = os.path.split(img_list[0])[0] if (vid_path == str()) or (vid_path is None) else vid_path
-    vid_file = os.path.join(vid_path, vid_name + ".avi")
-    frm_size = cv.imread(img_list[0]).shape[::-1][1:]
-
-    # Write images to a video
-    writer = cv.VideoWriter(vid_file, cv.VideoWriter_fourcc(*"FFV1"), fps, frm_size)
-    for i in img_list:
-        img = cv.imread(i, cv.IMREAD_UNCHANGED)
-        writer.write(img)
-    return os.path.isfile(vid_file)
-
-
-# Legacy label file IO functions ------------------------------------------------------------------------------------- #
-
-def jsl_read(js_lbl_file):
-    """ Import a standard JSON label file to a Python list of dictionary.
-
-    Args:
-        js_lbl_file (str): Labelling file contained with labels
-
-    Returns:
-        list[dict]: List of dictionary with label info
-    """
-    with open(js_lbl_file) as infile:
-        jsl_data = json.load(infile)
-    return jsl_data
-
-
-def jsl_write(dst_jsl_file, jsl_data):
-    """ Write JSON label data to a standard JSON label file.
-
-    Args:
-        dst_jsl_file (str): Labelling file to be write label data (*.json)
-        jsl_data (list[dict]): List of dictionary with label info
-
-    Returns:
-        bool: File creation status
-    """
-    if len(jsl_data) != 0:
-        with open(dst_jsl_file, 'w') as outfile:
-            json.dump(jsl_data, outfile)
-        return True
-    else:
-        print('Empty label data input, file not created!')
-        return False
-
-
-def hml_read(hm_lbl_file):
-    """ Import a PICKLE HeatMap label file to a Python list of dictionary.
-
-    Args:
-        hm_lbl_file (str): Labelling file contained with HeatMap labels
-
-    Returns:
-        list[dict]: List of dictionary with HeatMap label info
-    """
-    with open(hm_lbl_file, 'rb') as infile:
-        comp = pkl.load(infile)
-    hml_data = pkl.loads(zlib.decompress(comp))
-    return hml_data
-
-
-def hml_write(dst_hml_file, hml_data):
-    """ Write HeatMap label data to a PICKLE label file.
-
-    Args:
-        dst_hml_file (str): Labelling file to write HeatMap labels (*.pkl)
-        hml_data (list[dict]): List of dictionary with HeatMap label info
-
-    Returns:
-        bool: File creation status
-    """
-    if len(hml_data) != 0:
-        comp = zlib.compress(pkl.dumps(hml_data, protocol=2))
-        with open(dst_hml_file, 'wb') as outfile:
-            pkl.dump(comp, outfile, protocol=2)
-        return True
-    else:
-        print('Empty label data input, file not created!')
-        return False
-
-
-# Label file IO functions -------------------------------------------------------------------------------------------- #
-
-def cjsh_read(file):
-    """ Compressed JSON with Secure Hash embedded (CJSH) file, reading function.
-
-    Args:
-        file (str): File contained compressed JSON data (*.*)
-
-    Returns:
-        Imported data
-    """
-    # Read data from the file
-    with open(file, 'r') as infile:
-        indata = json.load(infile)
-    # Decode the data and compute the hash value
-    serialized = zlib.decompress(base64.b64decode(indata['arc'].encode('ascii')))
-    checksum = hashlib.sha256(serialized).hexdigest()
-    # Verify and output the decoded data
-    if checksum == indata['cks']:
-        data = json.loads(serialized.decode('utf-8'))
-    else:
-        warnings.warn('Data corrupted in file: %s!' % file, Warning, stacklevel=2)
-        data = None
-    return data
-
-
-def cjsh_write(file, data):
-    """ Compressed JSON with Secure Hash embedded (CJSH) file, writing function.
-
-    Args:
-        file (str): Output file name
-        data: Any type of data that is JSON serializable
-
-    Returns:
-        bool: File creation status
-    """
-    # Serialize input data to JSON format
-    serialized = json.dumps(data, skipkeys=False, ensure_ascii=False, allow_nan=True).encode('utf-8')
-    # Compress and hash the serialized data
-    compressed = base64.b64encode(zlib.compress(serialized, level=9)).decode('ascii')
-    checksum = hashlib.sha256(serialized).hexdigest()
-    # Write to the file
-    try:
-        with open(file, 'w') as outfile:
-            json.dump({'arc': compressed, 'cks': checksum}, outfile)
-        return True
-    except OSError as x:
-        warnings.warn("[Errno %d] when writing file '%s': %s" % (x.errno, file, x.strerror), Warning, stacklevel=2)
-        return False
 
 
 # Label data structure conversion functions -------------------------------------------------------------------------- #
