@@ -4,6 +4,7 @@ import numpy as np
 import scipy.ndimage as ndi
 import scipy.interpolate as itp
 import cv2.cv2 as cv
+import warnings
 
 """Function list:
   # Image/Video processing functions
@@ -340,8 +341,16 @@ def pad_nan(x, filt=True):
         z = np.asarray(list(range(len(src))), dtype=np.int32)
         spl = itp.UnivariateSpline(z, src, w=~mask)
         smt = spl(z)
-        # Extract padded NaN values and position
-        val = np.where(mask, smt, src).tolist()
+        # Check if spline still produces NaNs
+        if np.any(np.isnan(smt)):
+            warnings.warn("Failed to estimate with spline, using linear interpolation", RuntimeWarning, stacklevel=2)
+            src[mask] = np.interp(np.flatnonzero(mask), np.flatnonzero(~mask), src[~mask])
+            # Extract padded NaN values
+            val = src.tolist()
+        else:
+            # Extract padded NaN values
+            val = np.where(mask, smt, src).tolist()
+        # Extract padded NaN position
         pos = [i.item() for i in z[mask]]
     else:
         val = src.tolist()
