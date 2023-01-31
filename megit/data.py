@@ -200,6 +200,7 @@ def arr_raw_jsl(jsl_data, lbl_key):
 
 def get_frm_gap(frm_lst):
     """ Detect separation points of frame number.
+        - [frm_lst] must be pre-sorted, call sort() when necessary
 
     Args:
         frm_lst (list[int]): Input list of frame indices
@@ -211,7 +212,7 @@ def get_frm_gap(frm_lst):
     sep_idx = []  # INIT VAR
     for i in range(len(frm_lst) - 1):
         if (frm_lst[i + 1] - frm_lst[i]) != 1:
-            sep_idx.append([sep_init, i + 1])
+            sep_idx.append([sep_init, i + 1])  # [i + 1] to produce correct slicing results
             sep_init = i + 1
     sep_idx.append([sep_init, len(frm_lst)])
     return sep_idx
@@ -219,6 +220,7 @@ def get_frm_gap(frm_lst):
 
 def get_proc_rng(proc_idx, frm_lst, flk_size=60):
     """ Get valid and merged window for list process based on frame indices.
+        - Both [proc_idx] and [frm_lst] must be pre-sorted, call sort() when necessary
 
     Args:
         proc_idx (list[int]): Input list of requested value indices
@@ -239,9 +241,9 @@ def get_proc_rng(proc_idx, frm_lst, flk_size=60):
     rng_lst = []
     for i in proc_idx:
         for sep in sep_idx:
-            if sep[0] <= i <= sep[1]:
+            if sep[0] <= i < sep[1]:
                 rl = sep[0] if i - flk_size < sep[0] else i - flk_size
-                rr = sep[1] if i + flk_size + 1 > sep[1] else i + flk_size + 1
+                rr = sep[1] if i + flk_size + 1 > sep[1] else i + flk_size + 1  # +1 to produce correct slicing results
                 rng_lst.append([rl, rr])
                 break
     # Merge overlapped intervals
