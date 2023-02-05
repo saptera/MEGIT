@@ -22,6 +22,7 @@ import warnings
     flt_spl_frm(x, window, frm_lst): [flt_spl] with frame information.
     pad_nan(x, filt=True): Pad missing values in a 1D array with univariate spline.
     sel_mtp(x, y, pos=None): Select best prediction point with least l2-norm of univariate spline estimation.
+    diff_flt_frm(x, frm_lst, level=20, window=60): Replace values when the distance between points exceeds threshold.
   # Geometric feature functions
     lin2p(pt1, pt2): Get the slope and the intercept of a line defined by 2 points.
     rel_pos(lin, pt): Return distance from a point to a line.
@@ -326,10 +327,10 @@ def pad_nan(x, filt=True):
     # Cast input type
     if type(x) != np.ndarray:
         src = np.asarray(x, dtype=np.float64)
-    elif x.dtype != float:
-        src = x.astype(np.float64)
     else:
-        src = x
+        src = copy.deepcopy(x)  # Avoid changing input array
+        if src.dtype != float:
+            src = src.astype(np.float64)
     # Detect NaN values
     mask = np.isnan(src)
     if np.any(mask):
@@ -407,6 +408,65 @@ def sel_mtp(x, y, pos=None):
         return dst_x, dst_y, sel
     else:
         return x, y, None
+
+
+def diff_flt_frm(x, y, frm_lst, level=20, window=60):
+    """ Replace elements when the distance between consecutive points exceeds threshold.
+        - Threshold is defined by the median(l2-norm([x], [y])) * [level]
+        - [frm_lst] must be pre-sorted, call sort() when necessary
+
+    Args:
+        x (list[float] or np.ndarray): {1D} Input array of X positions
+        y (list[float] or np.ndarray): {1D} Input array of Y positions
+        frm_lst (list[int]): Input list of frame indices
+        level (int or float): Multiplier to the median of element-wise distance of input arrays (default: 20)
+        window (int): Flanking indices used for processing (default: 60)
+
+    Returns:
+        tuple[list[float], list[float]]: Filtered values (X, Y)
+    """
+    # Cast input type
+    if type(x) != np.ndarray:
+        x_src = np.asarray(x, dtype=np.float64)
+    else:
+        x_src = copy.deepcopy(x)  # Avoid changing input array
+        if x_src.dtype != float:
+            x_src = x_src.astype(np.float64)
+    if type(y) != np.ndarray:
+        y_src = np.asarray(y, dtype=np.float64)
+    else:
+        y_src = copy.deepcopy(y)  # Avoid changing input array
+        if y_src.dtype != float:
+            y_src = y_src.astype(np.float64)
+    # Get filtering threshold
+    x_diff = np.ediff1d(x_src, to_end=None, to_begin=0.0)
+    y_diff = np.ediff1d(y_src, to_end=None, to_begin=0.0)
+    norm = np.sqrt(np.square(x_diff) + np.square(y_diff))
+    th = np.median(norm) * level
+    # Get filtering range
+    gap = get_frm_gap(frm_lst)
+    err = np.argwhere(norm > th).flatten().tolist()
+    err_flt = [err[i] for i in range(len(err)) if err[i] not in [frm[0] for frm in gap]]  # Remove initial frames
+    pad_rng, grp = get_proc_rng(err_flt, frm_lst, window)
+    nan_rng = [[i[0], i[-1] + 1] for i in grp]  # Get rejected value range by the first and last elements of each group
+    # Padding filtered data
+    pad_idx = []  # INIT VAR
+    for idx in nan_rng:
+        x_src[idx[0]:idx[1]] = np.nan
+        y_src[idx[0]:idx[1]] = np.nan
+        pad_idx.extend(list(range(idx[0], idx[1])))
+    x_pad = []  # INIT VAR
+    y_pad = []  # INIT VAR
+    for idx in pad_rng:
+        # Pad X values
+        pad_tmp, pos_tmp = pad_nan(x_src[idx[0]:idx[1]], filt=False)
+        x_pad.extend(([pad_tmp[i] for i in pos_tmp]))
+        # Pad Y values
+        pad_tmp, pos_tmp = pad_nan(y_src[idx[0]:idx[1]], filt=False)
+        y_pad.extend(([pad_tmp[i] for i in pos_tmp]))
+    x_src[pad_idx] = x_pad
+    y_src[pad_idx] = y_pad
+    return x_src.tolist(), y_src.tolist()
 
 
 # Geometric feature functions ---------------------------------------------------------------------------------------- #
