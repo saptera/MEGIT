@@ -28,7 +28,9 @@ import warnings
     rel_pos(lin, pt): Return distance from a point to a line.
     poly_lin_poschk(lin, poly, th=0, sup=True): Check if a polygon has a relative position meets the defined threshold.
   # Animal behaviour detection functions
-    cross_detect(crs_lst, th=6, frm_lst=None): Detect animal crossing behaviour.
+    crs_det(crs_lst, th=6): Detect animal crossing behaviour.
+    crs_det_frm(crs_lst, frm_lst, th=6): Detect animal crossing behaviour with frame cut information included.
+    crs_len(crs_rng, fps=60): Get animal crossing duration for each cross.
 """
 
 
@@ -531,13 +533,12 @@ def poly_lin_poschk(lin, poly, th=0, sup=True):
 
 # Animal behaviour detection functions ------------------------------------------------------------------------------- #
 
-def cross_detect(crs_lst, th=6, frm_lst=None):
+def crs_det(crs_lst, th=6):
     """ Detect animal crossing behaviour.
 
     Args:
         crs_lst (list[int]): Input list of ROI cross
-        th (int): Threshold size for detection
-        frm_lst (list[int] or None): Input list of frame indices, auto-numbering if None
+        th (int): Threshold size for detection (default: 6)
 
     Returns:
         list[list[int, int]]: Detected crossing behaviour
@@ -545,7 +546,7 @@ def cross_detect(crs_lst, th=6, frm_lst=None):
     accu = 0  # INIT VAR
     started = False  # INIT VAR
     init = 0  # INIT VAR
-    crs_range = []  # INIT VAR
+    crs_rng = []  # INIT VAR
     for n in range(len(crs_lst) - th):
         # Compute window value
         if n == 0:
@@ -556,12 +557,46 @@ def cross_detect(crs_lst, th=6, frm_lst=None):
         if started:
             if accu == 0:
                 started = False
-                if frm_lst is None:
-                    crs_range.append([init, n])
-                else:
-                    crs_range.append([frm_lst[init], frm_lst[n]])
+                crs_rng.append([init, n])
         else:
             if accu >= th:
                 started = True
                 init = n
-    return crs_range
+    return crs_rng
+
+
+def crs_det_frm(crs_lst, frm_lst, th=6):
+    """ Detect animal crossing behaviour with frame cut information included.
+        - [frm_lst] must be pre-sorted, call sort() when necessary
+
+    Args:
+        crs_lst (list[int]): Input list of ROI cross
+        frm_lst (list[int]): Input list of frame indices
+        th (int): Threshold size for detection (default: 6)
+
+    Returns:
+        list[list[int, int]]: Detected crossing behaviour, with frame indices information
+    """
+    frm_gap = get_frm_gap(frm_lst)
+    crs_rng = []  # INIT VAR
+    for sec in frm_gap:
+        curr_crs = crs_lst[sec[0]:sec[1]]
+        curr_rng = crs_det(curr_crs, th)
+        crs_rng.extend(curr_rng)
+    return crs_rng
+
+
+def crs_len(crs_rng, fps=60):
+    """ Get animal crossing duration for each cross.
+
+    Args:
+        crs_rng (list[list[int, int]]): Detected crossing behaviour, with frame indices information
+        fps (int or float): Frame per second of original video (default: 60)
+
+    Returns:
+        list[float]: Duration of each cross
+    """
+    crs_time = []  # INIT VAR
+    for crs in crs_rng:
+        crs_time.append((crs[1] - crs[0]) / fps)
+    return crs_time
