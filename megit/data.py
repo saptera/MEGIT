@@ -27,6 +27,8 @@ import warnings
     lin2p(pt1, pt2): Get the slope and the intercept of a line defined by 2 points.
     rel_pos(lin, pt): Return distance from a point to a line.
     poly_lin_poschk(lin, poly, th=0, sup=True): Check if a polygon has a relative position meets the defined threshold.
+    pt_area_poschk(ctr, lw, hi, pt, ctr_th=0, ctr_sup=True, flip=False): Check if a point within a 3-line-area.
+    ploy_area_poschk(ctr, lw, hi, poly, ctr_th=0, ctr_sup=True, flip=False): Check if a polygon within a 3-line-area.
   # Animal behaviour detection functions
     crs_det(crs_lst, th=6): Detect animal crossing behaviour.
     crs_det_frm(crs_lst, frm_lst, th=6): Detect animal crossing behaviour with frame cut information included.
@@ -514,8 +516,8 @@ def poly_lin_poschk(lin, poly, th=0, sup=True):
     Args:
         lin (tuple[int or float, int or float] or list[int or float, int or float]): Line definition (slope, intercept)
         poly (list[tuple[int or float, int or float]]): Point (x, y) list defined polygon
-        th (int or float): Threshold
-        sup (bool): True: above threshold, False: below threshold
+        th (int or float): Threshold (default: 0)
+        sup (bool): True - above threshold, False - below threshold (default: True)
 
     Returns:
         bool: Checked status
@@ -523,12 +525,66 @@ def poly_lin_poschk(lin, poly, th=0, sup=True):
     for pt in poly:
         dist = rel_pos(lin, pt)
         if sup:
-            if dist <= th:
+            if dist > th:
                 return False
         else:
-            if dist >= th:
+            if dist < -th:
                 return False
     return True
+
+
+def pt_area_poschk(ctr, lw, hi, pt, ctr_th=0, ctr_sup=True, flip=False):
+    """ Check if a point within a 3-line-area meets the defined threshold or the centre line.
+
+    Args:
+        ctr (tuple[int or float, int or float]): Centre (main) line defined by slope and intercept
+        lw (tuple[int or float, int or float]): Lower (left or top for image) line defined by slope and intercept
+        hi (tuple[int or float, int or float]): Higher (right or bottom for image) line defined by slope and intercept
+        pt (tuple[float, float]): Point to be checked (x, y)
+        ctr_th (int or float): Centre (main) line threshold (default: 0)
+        ctr_sup (bool): Centre line check method, True - above threshold, False - below threshold (default: True)
+        flip (bool or tuple[bool, bool, bool]): Define if the point need to be flipped (default: False)
+
+    Returns:
+        tuple[bool, bool]: Checked status, [0] within area, [1] cross centre
+    """
+    # Check flip option input
+    if type(flip) == bool:
+        flip = [flip] * 3
+    elif type(flip) == list or type(flip) == tuple:
+        if len(flip) != 3:
+            raise ValueError("List of flip positions must have a length of 3")
+    else:
+        raise TypeError("Threshold must be a boolean or a boolean iterable of length 3")
+    pt = {False: pt, True: pt[::-1]}
+    fc = rel_pos(ctr, pt[flip[0]]) > ctr_th if ctr_sup else rel_pos(ctr, pt[flip[0]]) < -ctr_th
+    fl = rel_pos(lw, pt[flip[1]]) > 0
+    fh = rel_pos(hi, pt[flip[2]]) < 0
+    return all([fc, fl, fh]), fc
+
+
+def ploy_area_poschk(ctr, lw, hi, poly, ctr_th=0, ctr_sup=True, flip=False):
+    """ Check if a polygon within a 3-line-area meets the defined threshold or the centre line.
+
+    Args:
+        ctr (tuple[int or float, int or float]): Centre (main) line defined by slope and intercept
+        lw (tuple[int or float, int or float]): Lower (left or top for image) line defined by slope and intercept
+        hi (tuple[int or float, int or float]): Higher (right or bottom for image) line defined by slope and intercept
+        poly (list[tuple[int or float, int or float]]): Point (x, y) list defined polygon
+        ctr_th (int or float): Centre (main) line threshold (default: 0)
+        ctr_sup (bool): Centre line check method, True - above threshold, False - below threshold (default: True)
+        flip (bool or tuple[bool, bool, bool]): Define if the point need to be flipped (default: False)
+
+    Returns:
+        tuple[bool, bool]: Checked status, [0] within area, [1] cross centre
+    """
+    wth = []  # INIT VAR
+    crs = []  # INIT VAR
+    for pt in poly:
+        ar, ct = pt_area_poschk(ctr, lw, hi, pt, ctr_th, ctr_sup, flip)
+        wth.append(ar)
+        crs.append(ct)
+    return all(wth), all(crs)
 
 
 # Animal behaviour detection functions ------------------------------------------------------------------------------- #
@@ -580,9 +636,14 @@ def crs_det_frm(crs_lst, frm_lst, th=6):
     frm_gap = get_frm_gap(frm_lst)
     crs_rng = []  # INIT VAR
     for sec in frm_gap:
+        # Get section cross
         curr_crs = crs_lst[sec[0]:sec[1]]
         curr_rng = crs_det(curr_crs, th)
-        crs_rng.extend(curr_rng)
+        # Map to frame index
+        curr_frm = frm_lst[sec[0]:sec[1]]
+        frm_rng = [[curr_frm[n[0]], curr_frm[n[1]]] for n in curr_rng]
+        # Extend to output
+        crs_rng.extend(frm_rng)
     return crs_rng
 
 
