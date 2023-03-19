@@ -8,24 +8,24 @@ from megit.data import lin2p, ploy_area_poschk, get_frm_gap, crs_det_frm
 from megit.utils import prog_print
 
 """Function list:
-    det_avgint(roi_js, im_dir, im_ext='png', th=5, disp=(True, 4)): Detect crossings based on average intensity of ROIs.
+    avgint_roi(roi_js, im_dir, im_ext='png', disp=(True, 4)): Compute average intensity of ROIs.
+    det_avgint(roi_int, th=5, disp=(True, 4)): Detect crossings based on average intensity of ROIs.
     det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)): Detect crossings based on model prediction positions.
-    comb_det(ait, prd, frm_lst, th=6): Combining detection results of mean intensity and model prediction.
+    comb_det(ai_grd, ai_cns, prd, frm_lst, th=6): Combining detection results of mean intensity and model prediction.
 """
 
 
-def det_avgint(roi_js, im_dir, im_ext='png', th=5, disp=(True, 4)):
-    """ Detect crossings based on average intensity of ROIs.
+def avgint_roi(roi_js, im_dir, im_ext='png', disp=(True, 4)):
+    """ Compute average intensity of ROIs.
 
     Args:
         roi_js (str): ROI definition JSON file (*.json)
         im_dir (str): Image directory
         im_ext (str): Image extension (default: png)
-        th (int or float): Threshold for detection (default: 5)
         disp (tuple[bool, int]): Process print control, flag and indention (default: (True, 4))
 
     Returns:
-        dict[str, list[int]]: Detection with mean intensity results, keys = {'gap', 'top', 'btm'}
+        dict[str, list[int]]: Mean intensity of ROIs, keys = {'gap', 'top', 'btm'}
     """
     disp_prt = disp[0]
     disp_ind = 0 if disp[1] < 0 else disp[1]
@@ -65,11 +65,46 @@ def det_avgint(roi_js, im_dir, im_ext='png', th=5, disp=(True, 4)):
         disp_prt and prog_print(i, len(idx), "%sComputing average intensity:" % (' ' * disp_ind))
     # Covert to binary lists
     disp_prt and print("%sConverting data" % (' ' * disp_ind))
-    gap_det = np.where(gap_avg > max(gap_avg) - th, 0, 1).tolist()
-    top_det = np.where(top_avg > max(top_avg) - th, 0, 1).tolist()
-    btm_det = np.where(btm_avg > max(btm_avg) - th, 0, 1).tolist()
+    gap_avg = gap_avg.tolist()
+    top_avg = top_avg.tolist()
+    btm_avg = btm_avg.tolist()
 
-    return {'gap': gap_det, 'top': top_det, 'btm': btm_det}
+    return {'gap': gap_avg, 'top': top_avg, 'btm': btm_avg}
+
+
+def det_avgint(roi_int, th_grd=5, th_cns=10, disp=(True, 4)):
+    """ Detect crossings based on average intensity of ROIs.
+
+    Args:
+        roi_int (dict[str, list[int]]): Mean intensity of ROIs, keys = {'gap', 'top', 'btm'}
+        th_grd (int or float): Threshold for greedy no-false-negative detection (default: 5)
+        th_cns (int or float): Threshold for conservative no-false-positive detection (default: 10)
+        disp (tuple[bool, int]): Process print control, flag and indention (default: (True, 4))
+
+    Returns:
+        tuple[dict[str, list[int]], dict[str, list[int]]]: Detection with mean intensity of ROIs
+            - grd (dict[str, list[int]]): Greedy threshold detection results, keys = {'gap', 'top', 'btm'}
+            - cns (dict[str, list[int]]): Conservative threshold detection, keys = {'gap', 'top', 'btm'}
+    """
+    disp_prt = disp[0]
+    disp_ind = 0 if disp[1] < 0 else disp[1]
+    # Assign data
+    gap_avg = np.asarray(roi_int['gap'], dtype=np.float32)
+    top_avg = np.asarray(roi_int['top'], dtype=np.float32)
+    btm_avg = np.asarray(roi_int['btm'], dtype=np.float32)
+    # Greedy detection
+    disp_prt and print("%sComputing cross with greedy threshold" % (' ' * disp_ind))
+    gap_det_grd = np.where(gap_avg > max(gap_avg) - th_grd, 0, 1).tolist()
+    top_det_grd = np.where(top_avg > max(top_avg) - th_grd, 0, 1).tolist()
+    btm_det_grd = np.where(btm_avg > max(btm_avg) - th_grd, 0, 1).tolist()
+    grd = {'gap': gap_det_grd, 'top': top_det_grd, 'btm': btm_det_grd}
+    # Conservative detection
+    disp_prt and print("%sComputing cross with conservative threshold" % (' ' * disp_ind))
+    gap_det_cns = np.where(gap_avg > max(gap_avg) - th_cns, 0, 1).tolist()
+    top_det_cns = np.where(top_avg > max(top_avg) - th_cns, 0, 1).tolist()
+    btm_det_cns = np.where(btm_avg > max(btm_avg) - th_cns, 0, 1).tolist()
+    cns = {'gap': gap_det_cns, 'top': top_det_cns, 'btm': btm_det_cns}
+    return grd, cns
 
 
 def det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)):
@@ -166,11 +201,12 @@ def det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)):
     return {'gap': det['C'].tolist(), 'top': det['T'].tolist(), 'btm': det['B'].tolist()}
 
 
-def comb_det(ait, prd, frm_lst, th=6):
+def comb_det(ai_grd, ai_cns, prd, frm_lst, th=6):
     """ Combining detection results of mean intensity and model prediction.
 
     Args:
-        ait (dict[str, list[int]]): Detection with mean intensity results, keys = {'gap', 'top', 'btm'}
+        ai_grd (dict[str, list[int]]): Greedy detection with mean intensity results, keys = {'gap', 'top', 'btm'}
+        ai_cns (dict[str, list[int]]): Conservative detection with mean intensity results, keys = {'gap', 'top', 'btm'}
         prd (dict[str, list[int]]): Detection with model prediction positions,, keys = {'gap', 'top', 'btm'}
         frm_lst (list[int]): Input list of frame indices
         th (int): Threshold size for detection (default: 6)
@@ -185,26 +221,30 @@ def comb_det(ait, prd, frm_lst, th=6):
     res = {k: np.zeros(len(frm_lst), dtype=np.uint8) for k in ['gap', 'top', 'btm']}  # INIT VAR
     for k in ['gap', 'top', 'btm']:
         # Combine results
-        da = np.asarray(ait[k], dtype=np.uint8)
+        dg = np.asarray(ai_grd[k], dtype=np.uint8)
         dp = np.asarray(prd[k], dtype=np.uint8)
-        crs_lst = da & dp
+        crs_lst = dg & dp
         # Detect crossings
         det = crs_det_frm(crs_lst, frm_lst, th=th)
         grp = [i for i, g in enumerate(frm_grp) for d in det if g[0] <= d[0] <= g[1]]
         # Detect possible continuous crossings
-        tmp = [0]  # INIT VAR
-        mrg = []  # INIT VAR
-        for i in range(len(det) - 1):
-            if grp[i] == grp[i + 1]:
-                ait_chk = da[frm_idx[det[i][1]]:frm_idx[det[i + 1][0]]]
-                if sum(ait_chk) / len(ait_chk) < 0.95:
-                    tmp.append(i)
-                    mrg.append(tmp)
-                    tmp = [i + 1]
+        dc = np.asarray(ai_cns[k], dtype=np.uint8)
+        if len(det) < 2:
+            crs = det
         else:
-            tmp.append(len(det) - 1)
-            mrg.append(tmp)
-        crs = [[det[i[0]][0], det[i[1]][1]] for i in mrg]
+            tmp = [0]  # INIT VAR
+            mrg = []  # INIT VAR
+            for i in range(len(det) - 1):
+                if grp[i] == grp[i + 1]:
+                    ait_chk = dc[frm_idx[det[i][1]]:frm_idx[det[i + 1][0]]]
+                    if sum(ait_chk) / len(ait_chk) < 0.95:
+                        tmp.append(i)
+                        mrg.append(tmp)
+                        tmp = [i + 1]
+            else:
+                tmp.append(len(det) - 1)
+                mrg.append(tmp)
+            crs = [[det[i[0]][0], det[i[1]][1]] for i in mrg]
         # Set results
         for i in crs:
             res[k][frm_idx[i[0]]:frm_idx[i[1]]] = 1
