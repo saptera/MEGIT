@@ -228,11 +228,12 @@ def comb_det(ai_grd, ai_cns, prd, frm_lst, th=6):
         det = crs_det_frm(crs_lst, frm_lst, th=th)
         # Group crossings
         grp = [i for i, g in enumerate(frm_grp) for d in det if g[0] <= d[0] <= g[1]]
-        det_grp = [[] for _ in tuple(set(grp))]  # INIT VAR
+        det_grp = {g: [] for g in tuple(set(grp))}  # INIT VAR, use [dict] to avoid IndexError
         [det_grp[g].append(i) for i, g in zip(det, grp)]  # Separate detections by group
         # Detect possible continuous crossings
         dc = np.asarray(ai_cns[k], dtype=np.uint8)
-        for det in det_grp:
+        for n in det_grp:
+            det = det_grp[n]
             if len(det) < 2:
                 crs = det
             else:
