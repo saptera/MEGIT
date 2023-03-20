@@ -226,26 +226,29 @@ def comb_det(ai_grd, ai_cns, prd, frm_lst, th=6):
         crs_lst = dg & dp
         # Detect crossings
         det = crs_det_frm(crs_lst, frm_lst, th=th)
+        # Group crossings
         grp = [i for i, g in enumerate(frm_grp) for d in det if g[0] <= d[0] <= g[1]]
+        det_grp = [[] for _ in tuple(set(grp))]  # INIT VAR
+        [det_grp[g].append(i) for i, g in zip(det, grp)]  # Separate detections by group
         # Detect possible continuous crossings
         dc = np.asarray(ai_cns[k], dtype=np.uint8)
-        if len(det) < 2:
-            crs = det
-        else:
-            tmp = [0]  # INIT VAR
-            mrg = []  # INIT VAR
-            for i in range(len(det) - 1):
-                if grp[i] == grp[i + 1]:
+        for det in det_grp:
+            if len(det) < 2:
+                crs = det
+            else:
+                tmp = [0]  # INIT VAR
+                mrg = []  # INIT VAR
+                for i in range(len(det) - 1):
                     ait_chk = dc[frm_idx[det[i][1]]:frm_idx[det[i + 1][0]]]
                     if sum(ait_chk) / len(ait_chk) < 0.95:
                         tmp.append(i)
                         mrg.append(tmp)
                         tmp = [i + 1]
-            else:
-                tmp.append(len(det) - 1)
-                mrg.append(tmp)
-            crs = [[det[i[0]][0], det[i[1]][1]] for i in mrg]
-        # Set results
-        for i in crs:
-            res[k][frm_idx[i[0]]:frm_idx[i[1]]] = 1
+                else:
+                    tmp.append(len(det) - 1)
+                    mrg.append(tmp)
+                crs = [[det[i[0]][0], det[i[1]][1]] for i in mrg]
+            # Set results
+            for i in crs:
+                res[k][frm_idx[i[0]]:frm_idx[i[1]]] = 1
     return {k: res[k].tolist() for k in res}
