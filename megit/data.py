@@ -14,6 +14,7 @@ import warnings
   # Label data structure conversion functions
     get_lbl_det(area, circularity, inertia, convexity): Generate a detector for extracting blobs from 2D matrix.
     conv_hm2js_blob(hml_data, detector): Convert JSON type label to HeatMap type label with simple blob detector.
+    conv_hm2js_max(hml_data, th): Convert JSON type label to HeatMap type label with global maximum.
     arr_raw_jsl(jsl_data, lbl_key): Arrange raw HeatMap converted JSON labels
   # Label post-processing functions
     get_frm_gap(frm_lst): Detect separation points of frame number.
@@ -164,6 +165,27 @@ def conv_hm2js_blob(hml_data, detector):
         for kp in keypoint:
             kp_lst.append({'x': kp.pt[0], 'y': kp.pt[1], 'r': kp.size / 2})
         jsl_data[lbl['label']] = copy.deepcopy(kp_lst) if kp_lst else None
+    return jsl_data
+
+
+def conv_hm2js_max(hml_data, th):
+    """ Convert JSON type label to HeatMap type label with global maximum.
+
+    Args:
+        hml_data (list[dict]): List of dictionary with HeatMap type label info
+        th (int or float): HeatMap peak value threshold
+
+    Returns:
+        dict[str, list[dict[str, float]] or None]: List of dictionary with JSON label info
+    """
+    jsl_data = {}  # INIT VAR
+    for lbl in hml_data:
+        hm = lbl['heatmap']
+        if hm.max() > th:
+            y, x = np.unravel_index(np.argmax(hm), hm.shape)
+            jsl_data[lbl['label']] = {'x': x.item(), 'y': y.item(), 'r': 1}
+        else:
+            jsl_data[lbl['label']] = None
     return jsl_data
 
 
