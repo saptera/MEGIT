@@ -4,14 +4,14 @@ import numpy as np
 import cv2.cv2 as cv
 from shapely.geometry import Point, Polygon
 from megit.fio import cjsh_read
-from megit.data import lin2p, ploy_area_poschk, get_frm_gap, crs_det_frm
+from megit.data import lin2p, poly_lin_poschk, poly_area_poschk, get_frm_gap, crs_det_frm
 from megit.utils import prog_print
 
 """Function list:
     avgint_roi(roi_js, im_dir, im_ext='png', disp=(True, 4)): Compute average intensity of ROIs.
     det_avgint(roi_int, th=5, disp=(True, 4)): Detect crossings based on average intensity of ROIs.
     det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)): Detect crossings based on model prediction positions.
-    comb_det(ai_grd, ai_cns, prd, frm_lst, th=6): Combining detection results of mean intensity and model prediction.
+    comb_det(avg_grd, avg_cns, prd_det, prd_rer, frm_lst, th=6): Combining detection results.
 """
 
 
@@ -118,7 +118,9 @@ def det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)):
         disp (tuple[bool, int]): Process print control, flag and indention (default: (True, 4))
 
     Returns:
-        dict[str, list[int]]: Detection with model prediction positions, keys = {'gap', 'top', 'btm'}
+        tuple[dict[str, list[int]], dict[str, list[int]]]: Detection with model prediction positions
+            - det (dict[str, list[int]]): Prediction label ROI cross detection results, keys = {'gap', 'top', 'btm'}
+            - rer (dict[str, list[int]]): Prediction label wall line cross detection results, keys = {'top', 'btm'}
     """
     # Check threshold input
     if type(th) == int or type(th) == float:
@@ -147,7 +149,7 @@ def det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)):
     with open(roi_js, 'r') as f:
         roi = json.load(f)
     # Extract ROI features
-    feat = {int(frm): {'C': None, 'T': None, 'B': None} for frm in roi}  # INIT VAR
+    feat = {int(frm): {'C': None, 'T': None, 'B': None, 'W': None} for frm in roi}  # INIT VAR
     for frm in roi:
         if roi[frm]['C'] is not None:
             if tst:  # Test target animal, at the right platform by default
@@ -170,6 +172,9 @@ def det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)):
             sh = lin2p(roi[frm]['B']['tr'][::-1], roi[frm]['B']['br'][::-1])  # Flip X/Y for near-vertical line
             rg = Polygon([roi[frm]['B']['tl'], roi[frm]['B']['tr'], roi[frm]['B']['br'], roi[frm]['B']['bl']])
             feat[int(frm)]['B'] = {'ln': ln, 'sl': sl, 'sh': sh, 'rg': rg}
+        if tst and roi[frm]['W'] is not None:
+            ln = lin2p(roi[frm]['W']['tl'][::-1], roi[frm]['W']['bl'][::-1])
+            feat[int(frm)]['W'] = ln
 
     # Compute crossings
     ft = {'C': {'ln': [0, 0], 'sl': [0, 0], 'sh': [0, 0], 'rg': None},
@@ -178,36 +183,51 @@ def det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)):
     det = {'C': np.zeros(len(feat), dtype=np.uint8),
            'T': np.zeros(len(feat), dtype=np.uint8),
            'B': np.zeros(len(feat), dtype=np.uint8)}  # INIT VAR
+    wln = None  # INIT VAR
+    rer = {'T': np.zeros(len(feat), dtype=np.uint8),
+           'B': np.zeros(len(feat), dtype=np.uint8)}  # INIT VAR
     for i, frm in enumerate(feat):
         if feat[frm]['C'] is not None: ft['C'] = feat[i]['C']
         if feat[frm]['T'] is not None: ft['T'] = feat[i]['T']
         if feat[frm]['B'] is not None: ft['B'] = feat[i]['B']
+        if feat[frm]['W'] is not None: wln = feat[i]['W']
         for k in ['C', 'T', 'B']:
-            wth, crs = ploy_area_poschk(ft[k]['ln'], ft[k]['sl'], ft[k]['sh'], pred[i], ths[k], sup[k], flp[k])
+            # Check crossing with [left_ear] and [right_ear] key
+            wth, crs = poly_area_poschk(ft[k]['ln'], ft[k]['sl'], ft[k]['sh'], pred[i][1:], ths[k], sup[k], flp[k])
             if wth:
                 det[k][i] = 1
                 break
             else:
+                # If [left_ear] and [right_ear] already crossed centre line, but outside of side lines
+                # Check if the head has more than 50% inside current ROI
                 if crs:
                     poly = Polygon(pred[i])
                     itsc = poly.intersection(ft[k]['rg']).area
                     if itsc / poly.area >= 0.5:
                         det[k][i] = 1
                         break
+        if wln is not None:
+            # For top ROI, check if [nose] and [right_ear] key has crossed wall line
+            rer['T'][i] = 1 if poly_lin_poschk(wln, [pred[i][0], pred[i][2]], th=0, sup=True) else 0
+            # For bottom ROI, check if [nose] and [left_ear] key has crossed wall line
+            rer['B'][i] = 1 if poly_lin_poschk(wln, [pred[i][0], pred[i][1]], th=0, sup=True) else 0
         disp_prt and prog_print(i, len(feat), "%sComputing cross:" % (' ' * disp_ind))
 
     # Covert to binary lists
     disp_prt and print("%sConverting data" % (' ' * disp_ind))
-    return {'gap': det['C'].tolist(), 'top': det['T'].tolist(), 'btm': det['B'].tolist()}
+    det = {'gap': det['C'].tolist(), 'top': det['T'].tolist(), 'btm': det['B'].tolist()}
+    rer = {'top': rer['T'].tolist(), 'btm': rer['B'].tolist()}
+    return det, rer
 
 
-def comb_det(ai_grd, ai_cns, prd, frm_lst, th=6):
+def comb_det(avg_grd, avg_cns, prd_det, prd_rer, frm_lst, th=6):
     """ Combining detection results of mean intensity and model prediction.
 
     Args:
-        ai_grd (dict[str, list[int]]): Greedy detection with mean intensity results, keys = {'gap', 'top', 'btm'}
-        ai_cns (dict[str, list[int]]): Conservative detection with mean intensity results, keys = {'gap', 'top', 'btm'}
-        prd (dict[str, list[int]]): Detection with model prediction positions,, keys = {'gap', 'top', 'btm'}
+        avg_grd (dict[str, list[int]]): Greedy detection with mean intensity results, keys = {'gap', 'top', 'btm'}
+        avg_cns (dict[str, list[int]]): Conservative detection with mean intensity results, keys = {'gap', 'top', 'btm'}
+        prd_det (dict[str, list[int]]): Cross detection with model prediction positions, keys = {'gap', 'top', 'btm'}
+        prd_rer (dict[str, list[int]]): Wall line cross with model prediction positions, keys = {'top', 'btm'}
         frm_lst (list[int]): Input list of frame indices
         th (int): Threshold size for detection (default: 6)
 
@@ -221,8 +241,8 @@ def comb_det(ai_grd, ai_cns, prd, frm_lst, th=6):
     res = {k: np.zeros(len(frm_lst), dtype=np.uint8) for k in ['gap', 'top', 'btm']}  # INIT VAR
     for k in ['gap', 'top', 'btm']:
         # Combine results
-        dg = np.asarray(ai_grd[k], dtype=np.uint8)
-        dp = np.asarray(prd[k], dtype=np.uint8)
+        dg = np.asarray(avg_grd[k], dtype=np.uint8)
+        dp = np.asarray(prd_det[k], dtype=np.uint8)
         crs_lst = dg & dp
         # Detect crossings
         det = crs_det_frm(crs_lst, frm_lst, th=th)
@@ -231,24 +251,29 @@ def comb_det(ai_grd, ai_cns, prd, frm_lst, th=6):
         det_grp = {g: [] for g in tuple(set(grp))}  # INIT VAR, use [dict] to avoid IndexError
         [det_grp[g].append(i) for i, g in zip(det, grp)]  # Separate detections by group
         # Detect possible continuous crossings
-        dc = np.asarray(ai_cns[k], dtype=np.uint8)
+        dc = np.asarray(avg_cns[k], dtype=np.uint8)
+        if k == 'gap':
+            pcc_lst = dc
+        else:
+            # Reject conservative intensity detection when wall cross detected
+            dw = np.asarray(prd_rer[k], dtype=np.uint8) ^ 1  # Flip results
+            pcc_lst = dc & dw
         for n in det_grp:
             det = det_grp[n]
             if len(det) < 2:
                 crs = det
             else:
                 tmp = [0]  # INIT VAR
-                mrg = []  # INIT VAR
+                crs = []  # INIT VAR
                 for i in range(len(det) - 1):
-                    ait_chk = dc[frm_idx[det[i][1]]:frm_idx[det[i + 1][0]]]
+                    ait_chk = pcc_lst[frm_idx[det[i][1]]:frm_idx[det[i + 1][0]]]
                     if sum(ait_chk) / len(ait_chk) < 0.95:
                         tmp.append(i)
-                        mrg.append(tmp)
+                        crs.append([det[tmp[0]][0], det[tmp[1]][1]])
                         tmp = [i + 1]
                 else:
                     tmp.append(len(det) - 1)
-                    mrg.append(tmp)
-                crs = [[det[i[0]][0], det[i[1]][1]] for i in mrg]
+                    crs.append([det[tmp[0]][0], det[tmp[1]][1]])
             # Set results
             for i in crs:
                 res[k][frm_idx[i[0]]:frm_idx[i[1]]] = 1
