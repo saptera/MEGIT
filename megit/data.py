@@ -15,7 +15,11 @@ import warnings
     get_lbl_det(area, circularity, inertia, convexity): Generate a detector for extracting blobs from 2D matrix.
     conv_hm2js_blob(hml_data, detector): Convert JSON type label to HeatMap type label with simple blob detector.
     conv_hm2js_max(hml_data, th): Convert JSON type label to HeatMap type label with global maximum.
-    arr_raw_jsl(jsl_data, lbl_key): Arrange raw HeatMap converted JSON labels
+    det_elp_lbl(hml_data): Detect HeatMap label position with ellipse detector.
+    arr_raw_jsl(jsl_data, lbl_key): Arrange raw HeatMap converted JSON labels.
+  # Label data plotting functions
+    hml_plot(hml, img, clst=None): Plot HeatMap label to corresponding image.
+    jsl_plt(jsl, img, raw=False, clst=None): Plot JSON label to corresponding image.
   # Label post-processing functions
     get_frm_gap(frm_lst): Detect separation points of frame number.
     get_proc_rng(proc_idx, frm_lst, flk_size=60): Get valid and merged window for list process based on frame indices.
@@ -183,14 +187,37 @@ def conv_hm2js_max(hml_data, th):
         hm = lbl['heatmap']
         if hm.max() > th:
             y, x = np.unravel_index(np.argmax(hm), hm.shape)
-            jsl_data[lbl['label']] = {'x': x.item(), 'y': y.item(), 'r': 1}
+            jsl_data[lbl['label']] = [{'x': x.item(), 'y': y.item(), 'r': 1}]
         else:
             jsl_data[lbl['label']] = None
     return jsl_data
 
 
+def det_elp_lbl(hml_data):
+    """ Detect HeatMap label position with ellipse detector.
+
+    Args:
+        hml_data (list[dict]): List of dictionary with HeatMap type label info
+
+    Returns:
+        dict[str, list[dict[str, float]] or None]: List of dictionary with ellipse fitting info
+    """
+    elp_data = {}  # INIT VAR
+    for lbl in hml_data:
+        heat = lbl['heatmap']
+        blur = cv.blur(heat, (3, 3))
+        pred = np.where(blur < blur.max() * 0.5, 255, 0).astype(np.uint8)
+        edge = cv.Canny(pred, 150, 300)
+        cont, _ = cv.findContours(edge, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        elp_data[lbl['label']] = []  # INIT VAR
+        for c in cont:
+            if c.shape[0] >= 5:
+                elp_data[lbl['label']].append(cv.fitEllipse(c))
+    return elp_data
+
+
 def arr_raw_jsl(jsl_data, lbl_key):
-    """ Arrange raw HeatMap converted JSON labels
+    """ Arrange raw HeatMap converted JSON labels.
 
     Args:
         jsl_data (dict[int, dict[str, dict[str, float] or list[dict[str, float]] or None]]): Input JSON label data
@@ -222,6 +249,70 @@ def arr_raw_jsl(jsl_data, lbl_key):
             [lbl_kpl[k].append([p[k] for p in jsl_data[frm][lbl_key]]) for k in lbl_kpl]
             mtp_ptl.append(int(frm))
     return lbl_kpl, nan_ptl, mtp_ptl
+
+
+# Label plotting functions ------------------------------------------------------------------------------------------- #
+def hml_plot(hml, img, clst=None):
+    """ Plot HeatMap label to corresponding image.
+
+    Args:
+        hml (list[dict]): HeatMap format prediction label
+        img (np.ndarray): Corresponding image of the label
+        clst (dict[str, tuple[int, int, int] or list[int, int, int]] or None): Color list for label (default: None)
+
+    Returns:
+        np.ndarray: Labelled image
+    """
+    mrg = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)  # INIT VAR
+    if not clst:
+        clst = {k['label']: np.random.randint(0, 256, 3).tolist() for k in hml}
+    for lbl in hml:
+        if lbl['heatmap'] is not None:
+            # Clip for negative values
+            hm = np.clip(lbl['heatmap'], 0, None)
+            # Re-normalize heatmap
+            fac = 0 if hm.max() == 0 else 1 / hm.max()
+            norm = np.multiply(hm, fac)
+            # Assign defined color with heatmap as alpha level
+            color = clst[lbl['label']][::-1]  # Reverse RGB order for OpenCV BGR mode
+            heat = np.dstack((norm * color[0], norm * color[1], norm * color[2])).astype(np.uint8)
+            # Merge heatmaps of labels
+            mrg = cv.add(mrg, heat)
+    # Overlay heatmap to original image
+    dst = cv.addWeighted(img, 0.5, mrg, 2.5, 0)
+    return dst
+
+
+def jsl_plt(jsl, img, raw=False, clst=None):
+    """ Plot JSON label to corresponding image.
+
+    Args:
+        jsl (dict[str, dict[str, float] or list[dict[str, float]]]): JSON format prediction label
+            - Post-processed label has a type of dict[str, dict[str, float]]
+            - Raw label has a type of dict[str, list[dict[str, float]]]
+        img (np.ndarray): Corresponding image of the label
+        raw (bool): Input label type control (default: False)
+        clst (dict[str, tuple[int, int, int] or list[int, int, int]] or None): Color list for label (default: None)
+
+    Returns:
+        np.ndarray: Labelled image
+    """
+    # Avoid changing original image input
+    dst = copy.deepcopy(img)
+    # Verify color list input
+    if not clst:
+        clst = {k: np.random.randint(0, 256, 3).tolist() for k in jsl}
+    # Plot labels
+    for lbl in jsl:
+        if jsl[lbl]:
+            color = clst[lbl][::-1]  # Reverse RGB order for OpenCV BGR mode
+            data = jsl[lbl] if raw else [jsl[lbl]]  # Unifying data type to LIST[DICT]
+            for kp in data:
+                centre = np.around([kp['x'], kp['y']]).astype(int)
+                radius = np.around(kp['r']).astype(int).item()
+                dst = cv.circle(dst, centre, 0, color=color, thickness=-1)  # Plot prediction point
+                dst = cv.circle(dst, centre, radius, color=color, thickness=1)
+    return dst
 
 
 # Label post-processing functions ------------------------------------------------------------------------------------ #
