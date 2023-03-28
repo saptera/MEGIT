@@ -1,5 +1,7 @@
 import os
 import base64
+import copy
+import csv
 import json
 import zlib
 import hashlib
@@ -18,6 +20,10 @@ import warnings
   # Label file IO functions
     cjsh_read(file): Compressed JSON with Secure Hash embedded (CJSH) file, reading function.
     cjsh_write(file, data): Compressed JSON with Secure Hash embedded (CJSH) file, writing function.
+  # Experiment result file IO functions
+    read_roi_poly(roi_json): Import ROI definition JSON file as list of polygon points.
+    read_crscsv_set(crs_csv): Import crossing detection results for a single set.
+    read_crscsv_mrg(crs_csv): Import merged crossing detection results for whole experiment.
 """
 
 
@@ -177,3 +183,98 @@ def cjsh_write(file, data):
     except OSError as x:
         warnings.warn("[Errno %d] when writing file '%s': %s" % (x.errno, file, x.strerror), Warning, stacklevel=2)
         return False
+
+
+# Experiment result file IO functions -------------------------------------------------------------------------------- #
+
+def read_roi_poly(roi_json):
+    """ Import ROI definition JSON file as list of polygon points.
+
+    Args:
+        roi_json (str): ROI definition JSON file
+
+    Returns:
+        Polygon points of ROI, recommended access of (frame: i, region, r) by: ply[i].get(r, ply[ply[i][None]][r])
+    """
+    with open(roi_json, 'r') as jsonfile:
+        roi = json.load(jsonfile)
+    key = {'C': 'gap', 'T': 'top', 'B': 'btm', 'W': 'wal'}
+    rgn = {'C': None, 'T': None, 'B': None, 'W': None}  # INIT VAR
+    ply = {}  # INIT VAR
+    curr = 0  # INIT VAR
+    for i in roi:
+        frm = int(i)
+        ply[frm] = {None: frm, 'gap': None, 'top': None, 'btm': None}  # [None] for default, optional [wal] is omitted
+        for k in roi[i]:
+            rect = roi[i][k]
+            # This logical operation is safe as the raw JSON ROI data will have either all None or all not None
+            if rect is None:
+                ply[frm] = {None: curr}
+            else:
+                rgn[k] = [rect['tl'], rect['tr'], rect['br'], rect['bl']]
+                ply[frm][key[k]] = copy.deepcopy(rgn[k])
+                curr = frm
+    return ply
+
+
+def read_crscsv_set(crs_csv):
+    """ Import crossing detection results for a single set.
+
+    Args:
+        crs_csv (str): Crossing detection results of set
+
+    Returns:
+        dict[str, list]: Results, keys = ['frm', 'gap', 'top', 'btm']
+    """
+    res = {'frm': [], 'gap': [], 'top': [], 'btm': []}  # INIT VAR
+    with open(crs_csv, 'r', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        idx = 0
+        for row in reader:
+            if idx > 0:  # Escape header
+                # Get object test crossings
+                res['frm'].append(int(row[0]))
+                res['gap'].append(int(row[1]))
+                res['top'].append(int(row[2]))
+                res['btm'].append(int(row[3]))
+            idx += 1
+    return res
+
+
+def read_crscsv_mrg(crs_csv):
+    """ Import merged crossing detection results for whole experiment.
+
+    Args:
+        crs_csv (str): Merged crossing detection results for whole experiment
+
+    Returns:
+        tuple[dict[str, list], dict[str, list], dict[str, list]]: Results, keys = ['frm', 'gap', 'top', 'btm']
+            - obj (dict[str, list]): Object test crossings
+            - juv (dict[str, list]): Juvenile test crossings
+            - byj (dict[str, list]): By juvenile crossings (['top'] and ['btm'] are list of zeros)
+    """
+    obj = {'frm': [], 'gap': [], 'top': [], 'btm': []}  # INIT VAR
+    juv = {'frm': [], 'gap': [], 'top': [], 'btm': []}  # INIT VAR
+    byj = {'frm': [], 'gap': [], 'top': [], 'btm': []}  # INIT VAR
+    with open(crs_csv, 'r', newline='') as csvfile:
+        reader = csv.reader(csvfile)
+        idx = 0
+        for row in reader:
+            if idx > 1:  # Escape header
+                # Get object test crossings
+                obj['frm'].append(int(row[0]))
+                obj['gap'].append(int(row[1]))
+                obj['top'].append(int(row[2]))
+                obj['btm'].append(int(row[3]))
+                # Get juvenile test crossings
+                juv['frm'].append(int(row[4]))
+                juv['gap'].append(int(row[5]))
+                juv['top'].append(int(row[6]))
+                juv['btm'].append(int(row[7]))
+                # Get by juvenile crossings
+                byj['frm'].append(int(row[4]))
+                byj['gap'].append(int(row[8]))
+                byj['top'].append(0)
+                byj['btm'].append(0)
+            idx += 1
+    return obj, juv, byj
