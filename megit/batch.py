@@ -1,27 +1,25 @@
-import os
 import json
 import numpy as np
-import cv2.cv2 as cv
+import h5py as h5
 from shapely.geometry import Point, Polygon
 from megit.fio import cjsh_read
 from megit.data import lin2p, poly_lin_poschk, poly_area_poschk, get_frm_gap, crs_det_frm
 from megit.utils import prog_print
 
 """Function list:
-    avgint_roi(roi_js, im_dir, im_ext='png', disp=(True, 4)): Compute average intensity of ROIs.
+    avgint_roi(roi_js, im_hdf, im_ext='png', disp=(True, 4)): Compute average intensity of ROIs.
     det_avgint(roi_int, th=5, disp=(True, 4)): Detect crossings based on average intensity of ROIs.
     det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)): Detect crossings based on model prediction positions.
     comb_det(avg_grd, avg_cns, prd_det, prd_rer, frm_lst, th=6): Combining detection results.
 """
 
 
-def avgint_roi(roi_js, im_dir, im_ext='png', disp=(True, 4)):
+def avgint_roi(roi_js, im_hdf, disp=(True, 4)):
     """ Compute average intensity of ROIs.
 
     Args:
-        roi_js (str): ROI definition JSON file (*.json)
-        im_dir (str): Image directory
-        im_ext (str): Image extension (default: png)
+        roi_js (str): ROI definition JSON file (*.roi)
+        im_hdf (str): Frame image HDF5 file (*.frm)
         disp (tuple[bool, int]): Process print control, flag and indention (default: (True, 4))
 
     Returns:
@@ -32,8 +30,9 @@ def avgint_roi(roi_js, im_dir, im_ext='png', disp=(True, 4)):
 
     # Read image file list
     disp_prt and print("%sAcquiring input frame files" % (' ' * disp_ind))
-    im_lst = [os.path.join(im_dir, f) for f in os.listdir(im_dir) if f.endswith(im_ext)]
-    height, width = cv.imread(im_lst[0], cv.IMREAD_GRAYSCALE).shape
+    im_fp = h5.File(im_hdf, 'r')
+    im_lst = sorted(list(im_fp.keys()), key=int)
+    height, width = im_fp[im_lst[0]][()].shape
 
     # Read ROI JSON file
     disp_prt and print("%sComputing ROI features" % (' ' * disp_ind))
@@ -58,7 +57,7 @@ def avgint_roi(roi_js, im_dir, im_ext='png', disp=(True, 4)):
         if idx[frm]['C'] is not None: rc = idx[frm]['C']
         if idx[frm]['T'] is not None: rt = idx[frm]['T']
         if idx[frm]['B'] is not None: rb = idx[frm]['B']
-        img = cv.imread(im_lst[i], cv.IMREAD_GRAYSCALE)
+        img = im_fp[im_lst[i]][()]
         gap_avg[i] = np.mean(img[rc[1], rc[0]])
         top_avg[i] = np.mean(img[rt[1], rt[0]])
         btm_avg[i] = np.mean(img[rb[1], rb[0]])
@@ -69,6 +68,8 @@ def avgint_roi(roi_js, im_dir, im_ext='png', disp=(True, 4)):
     top_avg = top_avg.tolist()
     btm_avg = btm_avg.tolist()
 
+    # Close file and return
+    im_fp.close()
     return {'gap': gap_avg, 'top': top_avg, 'btm': btm_avg}
 
 
@@ -111,7 +112,7 @@ def det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)):
     """ Detect crossings based on model prediction positions.
 
     Args:
-        roi_js (str): ROI definition JSON file (*.json)
+        roi_js (str): ROI definition JSON file (*.roi)
         lbl_cj (str): Model prediction label file (*.jsl)
         tst (bool): Define if is a test animal (True) or a by animal (False)
         th (int or float or tuple[int or float, int or float, int or float]): Threshold for detection

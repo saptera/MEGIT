@@ -1,7 +1,7 @@
 import os
 import copy
 import json
-import csv
+import h5py as h5
 import math
 import numpy as np
 import cv2.cv2 as cv
@@ -112,17 +112,24 @@ class ProcWorker(QtCore.QObject):
         global out_dir, vid_cap, brt, con, exp_typ, frm_dig, frm_num, frm_list, roi_id, roi_data,\
             txt_mark, txt_linc, txt_hbkg, txt_bkgc, txt_size, txt_xval, txt_yval
 
-        # Make output directories
+        # Make output directories and file names
         if exp_typ:
-            frm_dir = mk_outdir(os.path.join(out_dir, "frm_over_juv/"), "Invalid frame output directory!")
-            tgt_dir = mk_outdir(os.path.join(out_dir, "test_juv/"), "Invalid target animal scene output directory!")
-            juv_dir = mk_outdir(os.path.join(out_dir, "juv/"), "Invalid juvenile animal scene output directory!")
+            vid_file = os.path.join(out_dir, "test_juv.avi")
+            tgt_dir = mk_outdir(os.path.join(out_dir, "juv/"), "Invalid juvenile test animal scene output directory!")
+            tgt_file = os.path.join(tgt_dir, "juv.frm")
+            tgt_roi = os.path.join(tgt_dir, "juv.roi")
+            juv_dir = mk_outdir(os.path.join(out_dir, "byj/"), "Invalid by juvenile animal scene output directory!")
+            juv_file = os.path.join(juv_dir, "byj.frm")
+            juv_roi = os.path.join(juv_dir, "byj.roi")
         else:
-            frm_dir = mk_outdir(os.path.join(out_dir, "frm_over_obj/"), "Invalid frame output directory!")
-            tgt_dir = mk_outdir(os.path.join(out_dir, "test_obj/"), "Invalid target animal scene output directory!")
+            vid_file = os.path.join(out_dir, "test_obj.avi")
+            tgt_dir = mk_outdir(os.path.join(out_dir, "obj/"), "Invalid object test animal scene output directory!")
+            tgt_file = os.path.join(tgt_dir, "obj.frm")
+            tgt_roi = os.path.join(tgt_dir, "obj.roi")
         # Get basic parameters
         width = int(vid_cap.get(cv.CAP_PROP_FRAME_WIDTH))
         height = int(vid_cap.get(cv.CAP_PROP_FRAME_HEIGHT))
+        frm_size = (width, height)
 
         # Compute frame crop region
         roi_crop = {}  # INIT VAR
@@ -185,64 +192,17 @@ class ProcWorker(QtCore.QObject):
         # Main process loop
         roi_id = -1  # Loop first call control
         count = 0  # INIT VAR
-        frm_feat = []  # INIT VAR
         tgt_feat = {}  # INIT VAR
         juv_feat = {}  # INIT VAR
-        keep_typ = {1: 'Y', 0: 'E', -1: 'N'}
+
+        # Open files for writing
+        vid_writer = cv.VideoWriter(vid_file, cv.VideoWriter_fourcc(*"FFV1"), vid_cap.get(cv.CAP_PROP_FPS), frm_size)
+        tgt_hdf = h5.File(tgt_file, 'w')
+        if exp_typ:
+            juv_hdf = h5.File(juv_file, 'w')
         for i in range(len(frm_list)):
             # Get current ROI index
             data_flag = find_roi_id(i)
-
-            # Get general frame feature
-            if data_flag:
-                feat_tgt_c = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
-                    roi_data[roi_id]['TGT_C']['tl'][0], roi_data[roi_id]['TGT_C']['tl'][1],
-                    roi_data[roi_id]['TGT_C']['tr'][0], roi_data[roi_id]['TGT_C']['tr'][1],
-                    roi_data[roi_id]['TGT_C']['bl'][0], roi_data[roi_id]['TGT_C']['bl'][1],
-                    roi_data[roi_id]['TGT_C']['br'][0], roi_data[roi_id]['TGT_C']['br'][1],)
-                feat_tgt_t = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
-                    roi_data[roi_id]['TGT_T']['tl'][0], roi_data[roi_id]['TGT_T']['tl'][1],
-                    roi_data[roi_id]['TGT_T']['tr'][0], roi_data[roi_id]['TGT_T']['tr'][1],
-                    roi_data[roi_id]['TGT_T']['bl'][0], roi_data[roi_id]['TGT_T']['bl'][1],
-                    roi_data[roi_id]['TGT_T']['br'][0], roi_data[roi_id]['TGT_T']['br'][1],)
-                feat_tgt_b = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
-                    roi_data[roi_id]['TGT_B']['tl'][0], roi_data[roi_id]['TGT_B']['tl'][1],
-                    roi_data[roi_id]['TGT_B']['tr'][0], roi_data[roi_id]['TGT_B']['tr'][1],
-                    roi_data[roi_id]['TGT_B']['bl'][0], roi_data[roi_id]['TGT_B']['bl'][1],
-                    roi_data[roi_id]['TGT_B']['br'][0], roi_data[roi_id]['TGT_B']['br'][1],)
-                feat_tgt_w = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
-                    roi_data[roi_id]['TGT_W']['tl'][0], roi_data[roi_id]['TGT_W']['tl'][1],
-                    roi_data[roi_id]['TGT_W']['tr'][0], roi_data[roi_id]['TGT_W']['tr'][1],
-                    roi_data[roi_id]['TGT_W']['bl'][0], roi_data[roi_id]['TGT_W']['bl'][1],
-                    roi_data[roi_id]['TGT_W']['br'][0], roi_data[roi_id]['TGT_W']['br'][1],)
-                if exp_typ:
-                    feat_juv_c = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
-                        roi_data[roi_id]['JUV_C']['tl'][0], roi_data[roi_id]['JUV_C']['tl'][1],
-                        roi_data[roi_id]['JUV_C']['tr'][0], roi_data[roi_id]['JUV_C']['tr'][1],
-                        roi_data[roi_id]['JUV_C']['bl'][0], roi_data[roi_id]['JUV_C']['bl'][1],
-                        roi_data[roi_id]['JUV_C']['br'][0], roi_data[roi_id]['JUV_C']['br'][1],)
-                    feat_juv_t = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
-                        roi_data[roi_id]['JUV_T']['tl'][0], roi_data[roi_id]['JUV_T']['tl'][1],
-                        roi_data[roi_id]['JUV_T']['tr'][0], roi_data[roi_id]['JUV_T']['tr'][1],
-                        roi_data[roi_id]['JUV_T']['bl'][0], roi_data[roi_id]['JUV_T']['bl'][1],
-                        roi_data[roi_id]['JUV_T']['br'][0], roi_data[roi_id]['JUV_T']['br'][1],)
-                    feat_juv_b = "[(%d %d) (%d %d) (%d %d) (%d %d)]" % (
-                        roi_data[roi_id]['JUV_B']['tl'][0], roi_data[roi_id]['JUV_B']['tl'][1],
-                        roi_data[roi_id]['JUV_B']['tr'][0], roi_data[roi_id]['JUV_B']['tr'][1],
-                        roi_data[roi_id]['JUV_B']['bl'][0], roi_data[roi_id]['JUV_B']['bl'][1],
-                        roi_data[roi_id]['JUV_B']['br'][0], roi_data[roi_id]['JUV_B']['br'][1],)
-                    frm_feat.append([i, keep_typ[frm_list[i]['keep']], feat_tgt_c, feat_tgt_t, feat_tgt_b, feat_tgt_w,
-                                     feat_juv_c, feat_juv_t, feat_juv_b])
-                else:
-                    frm_feat.append([i, keep_typ[frm_list[i]['keep']], feat_tgt_c, feat_tgt_t, feat_tgt_b, feat_tgt_w,
-                                     'None', 'None', 'None'])
-            else:
-                if exp_typ:
-                    frm_feat.append([i, keep_typ[frm_list[i]['keep']],
-                                     "ibid", "ibid", "ibid", "ibid", "ibid", "ibid", "ibid"])
-                else:
-                    frm_feat.append([i, keep_typ[frm_list[i]['keep']],
-                                     "ibid", "ibid", "ibid", "ibid", 'None', 'None', 'None'])
 
             # Process and save selected frames
             if frm_list[i]['keep'] == 1:
@@ -251,7 +211,7 @@ class ProcWorker(QtCore.QObject):
                 img = brt_con(img, brt, con)
                 if txt_mark:
                     img = draw_text(img, frm_dig % i, txt_xval, txt_yval, txt_size, txt_linc, txt_hbkg, txt_bkgc)
-                cv.imwrite(os.path.join(frm_dir, "frm_" + frm_dig % i + ".png"), img)
+                vid_writer.write(img)
                 # Process target animal region
                 if data_flag:
                     tgt_feat[i] = {'C': copy.deepcopy(roi_adj[roi_id]['TGT_C']),
@@ -263,7 +223,8 @@ class ProcWorker(QtCore.QObject):
                 tgt = img[roi_crop[roi_id]['TGT'][2]:roi_crop[roi_id]['TGT'][3],
                           roi_crop[roi_id]['TGT'][0]:roi_crop[roi_id]['TGT'][1]]
                 tgt = cv.resize(tgt, (256, 256), interpolation=cv.INTER_AREA)
-                cv.imwrite(os.path.join(tgt_dir, "tst_" + frm_dig % i + ".png"), tgt)
+                tgt = cv.cvtColor(tgt, cv.COLOR_BGR2GRAY)
+                tgt_hdf.create_dataset(str(i), data=tgt, compression='gzip', compression_opts=9)
                 # Process juvenile animal region
                 if exp_typ:
                     if data_flag:
@@ -275,27 +236,19 @@ class ProcWorker(QtCore.QObject):
                     juv = img[roi_crop[roi_id]['JUV'][2]:roi_crop[roi_id]['JUV'][3],
                               roi_crop[roi_id]['JUV'][0]:roi_crop[roi_id]['JUV'][1]]
                     juv = cv.resize(juv, (256, 256), interpolation=cv.INTER_AREA)
-                    cv.imwrite(os.path.join(juv_dir, "juv_" + frm_dig % i + ".png"), juv)
+                    juv = cv.cvtColor(juv, cv.COLOR_BGR2GRAY)
+                    juv_hdf.create_dataset(str(i), data=juv, compression='gzip', compression_opts=9)
                 # Progress report, set here as this is the most cost section
                 count += 1
                 self.progress.emit(count)
 
         # Write process details to file
-        csv_name = "frm_over_juv_prop.csv" if exp_typ else "frm_over_obj_prop.csv"
-        with open(os.path.join(out_dir, csv_name), 'w', newline='') as csv_file:
-            writer = csv.writer(csv_file)
-            writer.writerow(['brightness_level', 'contrast_level'])
-            writer.writerow([brt, con])
-            writer.writerow(['index', 'keep_status', 'target_roi', 'target_roi', 'target_roi',
-                             'juvenile_roi', 'juvenile_roi', 'juvenile_roi'])
-            writer.writerow(['index', 'keep_status', 'centre', 'right_top', 'left_bottom',
-                             'centre', 'right_top', 'left_bottom'])
-            writer.writerows(frm_feat)
-
-        with open(os.path.join(tgt_dir, "tst_prop.json"), 'w', encoding='utf-8') as tgt_file:
+        tgt_hdf.close()
+        with open(tgt_roi, 'w', encoding='utf-8') as tgt_file:
             json.dump(tgt_feat, tgt_file, ensure_ascii=False)
         if exp_typ:
-            with open(os.path.join(juv_dir, "juv_prop.json"), 'w', encoding='utf-8') as juv_file:
+            juv_hdf.close()
+            with open(juv_roi, 'w', encoding='utf-8') as juv_file:
                 json.dump(juv_feat, juv_file, ensure_ascii=False)
 
         self.finished.emit()

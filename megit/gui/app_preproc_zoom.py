@@ -1,7 +1,6 @@
 import os
 import cv2.cv2 as cv
 from megit.data import get_frm, brt_con, draw_text
-from megit.utils import mk_outdir
 from PyQt5 import QtCore, QtGui, QtWidgets
 from megit.gui.dgn_preprocz_ctrl import Ui_ControlViewer
 from megit.gui.dgn_preproc_frmv import Ui_FrameViewer
@@ -44,8 +43,13 @@ class ProcWorker(QtCore.QObject):
     def run(self):
         global out_dir, vid_cap, brt, con, txt_mark, txt_linc, txt_hbkg, txt_bkgc, txt_size, txt_xval, txt_yval, flp
 
-        # Make output directories
-        frm_dir = mk_outdir(os.path.join(out_dir, "zoom_frm/"), "Invalid frame output directory!")
+        # Get basic parameters
+        width = int(vid_cap.get(cv.CAP_PROP_FRAME_WIDTH))
+        height = int(vid_cap.get(cv.CAP_PROP_FRAME_HEIGHT))
+        frm_size = (width, height)
+        # Set output video
+        vid_file = os.path.join(out_dir, "zoom.avi")
+        vid_writer = cv.VideoWriter(vid_file, cv.VideoWriter_fourcc(*"FFV1"), vid_cap.get(cv.CAP_PROP_FPS), frm_size)
 
         # Main process loop
         count = 0  # INIT VAR
@@ -57,7 +61,7 @@ class ProcWorker(QtCore.QObject):
                 img = cv.flip(img, flp)
             if txt_mark:
                 img = draw_text(img, "%06d" % i, txt_xval, txt_yval, txt_size, txt_linc, txt_hbkg, txt_bkgc)
-            cv.imwrite(os.path.join(frm_dir, "frm_%06d.png" % i), img)
+            vid_writer.write(img)
             # Progress report, set here as this is the most cost section
             count += 1
             self.progress.emit(count)
