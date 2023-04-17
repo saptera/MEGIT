@@ -125,7 +125,7 @@
       <property name="title">
        <string>Output Directory</string>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
+      <layout class="QHBoxLayout" name="outputLayout">
        <property name="spacing">
         <number>5</number>
        </property>

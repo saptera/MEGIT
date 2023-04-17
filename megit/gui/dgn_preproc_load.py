@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '..\MEGIT\megit\gui\dgn_preproc_load.ui'
+# Form implementation generated from reading ui file '..\megit\gui\dgn_preproc_load.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.4
 #
@@ -65,17 +65,17 @@ class Ui_MainLoader(object):
         font.setWeight(75)
         self.outputGroup.setFont(font)
         self.outputGroup.setObjectName("outputGroup")
-        self.horizontalLayout = QtWidgets.QHBoxLayout(self.outputGroup)
-        self.horizontalLayout.setContentsMargins(10, 10, 10, 10)
-        self.horizontalLayout.setSpacing(5)
-        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.outputLayout = QtWidgets.QHBoxLayout(self.outputGroup)
+        self.outputLayout.setContentsMargins(10, 10, 10, 10)
+        self.outputLayout.setSpacing(5)
+        self.outputLayout.setObjectName("outputLayout")
         self.outputPath = QtWidgets.QLineEdit(self.outputGroup)
         font = QtGui.QFont()
         font.setBold(False)
         font.setWeight(50)
         self.outputPath.setFont(font)
         self.outputPath.setObjectName("outputPath")
-        self.horizontalLayout.addWidget(self.outputPath)
+        self.outputLayout.addWidget(self.outputPath)
         self.outputButton = QtWidgets.QPushButton(self.outputGroup)
         self.outputButton.setMinimumSize(QtCore.QSize(100, 0))
         font = QtGui.QFont()
@@ -83,7 +83,7 @@ class Ui_MainLoader(object):
         font.setWeight(50)
         self.outputButton.setFont(font)
         self.outputButton.setObjectName("outputButton")
-        self.horizontalLayout.addWidget(self.outputButton)
+        self.outputLayout.addWidget(self.outputButton)
         self.loaderLayout.addWidget(self.outputGroup)
         self.lowerLine = QtWidgets.QFrame(self.loaderWidget)
         self.lowerLine.setFrameShape(QtWidgets.QFrame.HLine)

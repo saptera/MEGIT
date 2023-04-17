@@ -11,12 +11,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from megit.gui.dgn_chkres_load import Ui_MainLoader
 from megit.gui.dgn_chkres_ctrl import Ui_CrossVerifier
 
-if hasattr(QtCore.Qt, 'AA_EnableHighDpiScaling'):
-    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, True)
-if hasattr(QtCore.Qt, 'AA_UseHighDpiPixmaps'):
-    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
 
-
+# Global definitions  -----------------------------------------------------------------------------------------------  #
 # Define colour palettes
 color_palette = {'tst_gap': (0, 158, 115), 'tst_top': (0, 114, 178), 'tst_btm': (213, 94, 0), 'tst_wal': (75, 0, 146),
                  'byj_gap': (204, 121, 167)}  # Colourblind safe palette
@@ -36,6 +32,7 @@ jsl_pd = {}  # Prediction JSON labels
 man_crs = {}  # Manual correction data
 
 
+# [CrossVerifier] MEGIT Cross-Verifier main GUI  --------------------------------------------------------------------  #
 class CrossVerifier(QtWidgets.QMainWindow, Ui_CrossVerifier):
     def __init__(self, parent=None):
         global set_flg
@@ -379,6 +376,7 @@ class CrossVerifier(QtWidgets.QMainWindow, Ui_CrossVerifier):
         self.close()
 
 
+# [MainLoader] MEGIT Cross-Verifier main loader  --------------------------------------------------------------------  #
 class MainLoader(QtWidgets.QMainWindow, Ui_MainLoader):
     def __init__(self, parent=None):
         super(MainLoader, self).__init__(parent)
