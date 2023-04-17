@@ -18,7 +18,7 @@ import warnings
     det_elp_lbl(hml_data): Detect HeatMap label position with ellipse detector.
     arr_raw_jsl(jsl_data, lbl_key): Arrange raw HeatMap converted JSON labels.
   # Label data plotting functions
-    hml_plot(hml, img, clst=None): Plot HeatMap label to corresponding image.
+    hml_plt(hml, img, clst=None): Plot HeatMap label to corresponding image.
     jsl_plt(jsl, img, raw=False, clst=None): Plot JSON label to corresponding image.
   # Label post-processing functions
     get_frm_gap(frm_lst): Detect separation points of frame number.
@@ -252,11 +252,11 @@ def arr_raw_jsl(jsl_data, lbl_key):
 
 
 # Label plotting functions ------------------------------------------------------------------------------------------- #
-def hml_plot(hml, img, clst=None):
+def hml_plt(hml, img, clst=None):
     """ Plot HeatMap label to corresponding image.
 
     Args:
-        hml (list[dict]): HeatMap format prediction label
+        hml (dict[str, np.ndarray]): HeatMap format prediction label
         img (np.ndarray): Corresponding image of the label
         clst (dict[str, tuple[int, int, int] or list[int, int, int]] or None): Color list for label (default: None)
 
@@ -265,21 +265,21 @@ def hml_plot(hml, img, clst=None):
     """
     mrg = np.zeros((img.shape[0], img.shape[1], 3), dtype=np.uint8)  # INIT VAR
     if not clst:
-        clst = {k['label']: np.random.randint(0, 256, 3).tolist() for k in hml}
+        clst = {k: np.random.randint(0, 256, 3).tolist() for k in hml}
     for lbl in hml:
-        if lbl['heatmap'] is not None:
+        if hml[lbl] is not None:
             # Clip for negative values
-            hm = np.clip(lbl['heatmap'], 0, None)
+            hm = np.clip(hml[lbl], 0, None)
             # Re-normalize heatmap
             fac = 0 if hm.max() == 0 else 1 / hm.max()
             norm = np.multiply(hm, fac)
             # Assign defined color with heatmap as alpha level
-            color = clst[lbl['label']][::-1]  # Reverse RGB order for OpenCV BGR mode
+            color = clst[lbl][::-1]  # Reverse RGB order for OpenCV BGR mode
             heat = np.dstack((norm * color[0], norm * color[1], norm * color[2])).astype(np.uint8)
             # Merge heatmaps of labels
             mrg = cv.add(mrg, heat)
     # Overlay heatmap to original image
-    dst = cv.addWeighted(img, 0.5, mrg, 2.5, 0)
+    dst = cv.addWeighted(img, 1.0, mrg, 2.5, 0)
     return dst
 
 

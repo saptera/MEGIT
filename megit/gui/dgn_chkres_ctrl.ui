@@ -1,0 +1,2016 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>CrossVerifier</class>
+ <widget class="QMainWindow" name="CrossVerifier">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1202</width>
+    <height>756</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>1202</width>
+    <height>756</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>1202</width>
+    <height>756</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Cross Detection Verifier</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QVBoxLayout" name="centralLayout">
+    <property name="spacing">
+     <number>10</number>
+    </property>
+    <item>
+     <layout class="QHBoxLayout" name="frameLayout">
+      <property name="spacing">
+       <number>10</number>
+      </property>
+      <item>
+       <widget class="QGraphicsView" name="frameDisplay">
+        <property name="minimumSize">
+         <size>
+          <width>630</width>
+          <height>630</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>630</width>
+          <height>630</height>
+         </size>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <layout class="QVBoxLayout" name="setupLayout">
+        <property name="spacing">
+         <number>10</number>
+        </property>
+        <item>
+         <widget class="QFrame" name="mrkFrame">
+          <property name="minimumSize">
+           <size>
+            <width>540</width>
+            <height>530</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>540</width>
+            <height>530</height>
+           </size>
+          </property>
+          <property name="focusPolicy">
+           <enum>Qt::NoFocus</enum>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::Box</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Sunken</enum>
+          </property>
+          <layout class="QVBoxLayout" name="mrkLayout">
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QFrame" name="manModeFrame">
+             <property name="minimumSize">
+              <size>
+               <width>518</width>
+               <height>450</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>518</width>
+               <height>450</height>
+              </size>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
+             <property name="frameShape">
+              <enum>QFrame::StyledPanel</enum>
+             </property>
+             <property name="frameShadow">
+              <enum>QFrame::Raised</enum>
+             </property>
+             <layout class="QGridLayout" name="manModeLayout">
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item row="2" column="1">
+               <widget class="QGroupBox" name="btmRgn">
+                <property name="minimumSize">
+                 <size>
+                  <width>246</width>
+                  <height>213</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>246</width>
+                  <height>213</height>
+                 </size>
+                </property>
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                  <weight>75</weight>
+                  <bold>true</bold>
+                 </font>
+                </property>
+                <property name="focusPolicy">
+                 <enum>Qt::NoFocus</enum>
+                </property>
+                <property name="title">
+                 <string>Bottom Region</string>
+                </property>
+                <layout class="QVBoxLayout" name="btmRgnLayout">
+                 <item>
+                  <widget class="QGroupBox" name="btmMrkSgn">
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                     <weight>50</weight>
+                     <bold>false</bold>
+                    </font>
+                   </property>
+                   <property name="focusPolicy">
+                    <enum>Qt::NoFocus</enum>
+                   </property>
+                   <property name="title">
+                    <string>Single Frame</string>
+                   </property>
+                   <layout class="QHBoxLayout" name="btmMrkSgnLayout">
+                    <item>
+                     <widget class="QPushButton" name="btmBtnSgnT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Cross</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="btmBtnSgnF">
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Noncross</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QGroupBox" name="btmMrkRng">
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                     <weight>50</weight>
+                     <bold>false</bold>
+                    </font>
+                   </property>
+                   <property name="focusPolicy">
+                    <enum>Qt::NoFocus</enum>
+                   </property>
+                   <property name="title">
+                    <string>Frame Range</string>
+                   </property>
+                   <layout class="QFormLayout" name="btmMrkRgnLayout">
+                    <item row="0" column="0">
+                     <widget class="QPushButton" name="btmBtnRgnTS">
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Cross Start</string>
+                      </property>
+                      <property name="checkable">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QPushButton" name="btmBtnRgnTE">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Cross End</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0" colspan="2">
+                     <widget class="Line" name="btmRgnLine">
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="0">
+                     <widget class="QPushButton" name="btmBtnRgnFS">
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Noncross Start</string>
+                      </property>
+                      <property name="checkable">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="1">
+                     <widget class="QPushButton" name="btmBtnRgnFE">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Noncross End</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item row="0" column="0" rowspan="3">
+               <widget class="QGroupBox" name="gapRgn">
+                <property name="minimumSize">
+                 <size>
+                  <width>246</width>
+                  <height>213</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>246</width>
+                  <height>213</height>
+                 </size>
+                </property>
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                  <weight>75</weight>
+                  <bold>true</bold>
+                 </font>
+                </property>
+                <property name="focusPolicy">
+                 <enum>Qt::NoFocus</enum>
+                </property>
+                <property name="title">
+                 <string>Gap Region</string>
+                </property>
+                <layout class="QVBoxLayout" name="gapRgnLayout">
+                 <item>
+                  <widget class="QGroupBox" name="gapMrkSgn">
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                     <weight>50</weight>
+                     <bold>false</bold>
+                    </font>
+                   </property>
+                   <property name="focusPolicy">
+                    <enum>Qt::NoFocus</enum>
+                   </property>
+                   <property name="title">
+                    <string>Single Frame</string>
+                   </property>
+                   <layout class="QHBoxLayout" name="gapMrkSgnLayout">
+                    <item>
+                     <widget class="QPushButton" name="gapBtnSgnT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Cross</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="gapBtnSgnF">
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Noncross</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QGroupBox" name="gapMrkRng">
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                     <weight>50</weight>
+                     <bold>false</bold>
+                    </font>
+                   </property>
+                   <property name="focusPolicy">
+                    <enum>Qt::NoFocus</enum>
+                   </property>
+                   <property name="title">
+                    <string>Frame Range</string>
+                   </property>
+                   <layout class="QFormLayout" name="gapMrkRgnLayout">
+                    <item row="0" column="0">
+                     <widget class="QPushButton" name="gapBtnRgnTS">
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Cross Start</string>
+                      </property>
+                      <property name="checkable">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QPushButton" name="gapBtnRgnTE">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Cross End</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0" colspan="2">
+                     <widget class="Line" name="gapRgnLine">
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="0">
+                     <widget class="QPushButton" name="gapBtnRgnFS">
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Noncross Start</string>
+                      </property>
+                      <property name="checkable">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="1">
+                     <widget class="QPushButton" name="gapBtnRgnFE">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Noncross End</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QGroupBox" name="topRgn">
+                <property name="minimumSize">
+                 <size>
+                  <width>246</width>
+                  <height>213</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>246</width>
+                  <height>213</height>
+                 </size>
+                </property>
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                  <weight>75</weight>
+                  <bold>true</bold>
+                 </font>
+                </property>
+                <property name="focusPolicy">
+                 <enum>Qt::NoFocus</enum>
+                </property>
+                <property name="title">
+                 <string>Top Region</string>
+                </property>
+                <layout class="QVBoxLayout" name="topRgnLayout">
+                 <item>
+                  <widget class="QGroupBox" name="topMrkSgn">
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                     <weight>50</weight>
+                     <bold>false</bold>
+                    </font>
+                   </property>
+                   <property name="focusPolicy">
+                    <enum>Qt::NoFocus</enum>
+                   </property>
+                   <property name="title">
+                    <string>Single Frame</string>
+                   </property>
+                   <layout class="QHBoxLayout" name="topMrkSgnLayout">
+                    <item>
+                     <widget class="QPushButton" name="topBtnSgnT">
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Cross</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QPushButton" name="topBtnSgnF">
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Noncross</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QGroupBox" name="topMrkRng">
+                   <property name="font">
+                    <font>
+                     <pointsize>12</pointsize>
+                     <weight>50</weight>
+                     <bold>false</bold>
+                    </font>
+                   </property>
+                   <property name="focusPolicy">
+                    <enum>Qt::NoFocus</enum>
+                   </property>
+                   <property name="title">
+                    <string>Frame Range</string>
+                   </property>
+                   <layout class="QFormLayout" name="topMrkRgnLayout">
+                    <item row="0" column="0">
+                     <widget class="QPushButton" name="topBtnRgnTS">
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Cross Start</string>
+                      </property>
+                      <property name="checkable">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="0" column="1">
+                     <widget class="QPushButton" name="topBtnRgnTE">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Cross End</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0" colspan="2">
+                     <widget class="Line" name="topRgnLine">
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="orientation">
+                       <enum>Qt::Horizontal</enum>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="0">
+                     <widget class="QPushButton" name="topBtnRgnFS">
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Noncross Start</string>
+                      </property>
+                      <property name="checkable">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="1">
+                     <widget class="QPushButton" name="topBtnRgnFE">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="minimumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="maximumSize">
+                       <size>
+                        <width>100</width>
+                        <height>25</height>
+                       </size>
+                      </property>
+                      <property name="font">
+                       <font>
+                        <pointsize>10</pointsize>
+                        <weight>50</weight>
+                        <bold>false</bold>
+                       </font>
+                      </property>
+                      <property name="focusPolicy">
+                       <enum>Qt::NoFocus</enum>
+                      </property>
+                      <property name="text">
+                       <string>Noncross End</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <spacer name="mrkSpacer">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>40</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="Line" name="mrkLine">
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QFrame" name="intModeFrame">
+             <property name="frameShape">
+              <enum>QFrame::StyledPanel</enum>
+             </property>
+             <property name="frameShadow">
+              <enum>QFrame::Raised</enum>
+             </property>
+             <layout class="QHBoxLayout" name="intModeLayout">
+              <item>
+               <widget class="QCheckBox" name="intModeCheckBox">
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                 </font>
+                </property>
+                <property name="toolTip">
+                 <string>Use intelligent mode for manual correction, enable this to allow keyboard shortcuts</string>
+                </property>
+                <property name="text">
+                 <string>Intelligent Mode</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="intModeSpacer">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="intThsLayout">
+                <property name="spacing">
+                 <number>5</number>
+                </property>
+                <item>
+                 <widget class="QDoubleSpinBox" name="intThsSpinBox">
+                  <property name="enabled">
+                   <bool>false</bool>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>70</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>70</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <pointsize>12</pointsize>
+                   </font>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::NoFocus</enum>
+                  </property>
+                  <property name="decimals">
+                   <number>1</number>
+                  </property>
+                  <property name="minimum">
+                   <double>1.000000000000000</double>
+                  </property>
+                  <property name="maximum">
+                   <double>20.000000000000000</double>
+                  </property>
+                  <property name="singleStep">
+                   <double>0.500000000000000</double>
+                  </property>
+                  <property name="value">
+                   <double>5.000000000000000</double>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="intThsLabel">
+                  <property name="minimumSize">
+                   <size>
+                    <width>75</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>75</width>
+                    <height>30</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <pointsize>12</pointsize>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>Threshold</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QFrame" name="dispFrame">
+          <property name="minimumSize">
+           <size>
+            <width>540</width>
+            <height>90</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>540</width>
+            <height>90</height>
+           </size>
+          </property>
+          <property name="frameShape">
+           <enum>QFrame::Box</enum>
+          </property>
+          <property name="frameShadow">
+           <enum>QFrame::Sunken</enum>
+          </property>
+          <layout class="QVBoxLayout" name="dispLayout">
+           <property name="spacing">
+            <number>0</number>
+           </property>
+           <property name="topMargin">
+            <number>0</number>
+           </property>
+           <property name="bottomMargin">
+            <number>0</number>
+           </property>
+           <item>
+            <widget class="QFrame" name="dispRoiFrame">
+             <property name="frameShape">
+              <enum>QFrame::StyledPanel</enum>
+             </property>
+             <property name="frameShadow">
+              <enum>QFrame::Raised</enum>
+             </property>
+             <layout class="QHBoxLayout" name="dispRoiLayout">
+              <item>
+               <widget class="QCheckBox" name="dispRoiCheckBox">
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                 </font>
+                </property>
+                <property name="toolTip">
+                 <string>Use intelligent mode for manual correction, enable this to allow keyboard shortcuts</string>
+                </property>
+                <property name="text">
+                 <string>Show ROI</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="dispRoiBox">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                 </font>
+                </property>
+                <property name="focusPolicy">
+                 <enum>Qt::NoFocus</enum>
+                </property>
+                <item>
+                 <property name="text">
+                  <string>AUTO</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Gap</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Top</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Bottom</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QFrame" name="dispLblFrame">
+             <property name="frameShape">
+              <enum>QFrame::StyledPanel</enum>
+             </property>
+             <property name="frameShadow">
+              <enum>QFrame::Raised</enum>
+             </property>
+             <layout class="QHBoxLayout" name="dispLblLayout">
+              <item>
+               <widget class="QCheckBox" name="dispHmlCheckBox">
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                 </font>
+                </property>
+                <property name="toolTip">
+                 <string>Use intelligent mode for manual correction, enable this to allow keyboard shortcuts</string>
+                </property>
+                <property name="text">
+                 <string>Show HeatMap Label</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <spacer name="dispLblSpacer">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>40</width>
+                  <height>20</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="dispJslCheckBox">
+                <property name="font">
+                 <font>
+                  <pointsize>12</pointsize>
+                 </font>
+                </property>
+                <property name="toolTip">
+                 <string>Use intelligent mode for manual correction, enable this to allow keyboard shortcuts</string>
+                </property>
+                <property name="text">
+                 <string>Show JSON Label</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+       </layout>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="frmsldrLayout">
+      <property name="spacing">
+       <number>10</number>
+      </property>
+      <item>
+       <widget class="QSlider" name="frmSlider">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="maximum">
+         <number>35999</number>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QSpinBox" name="sldrValue">
+        <property name="minimumSize">
+         <size>
+          <width>75</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>75</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="maximum">
+         <number>35999</number>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="ctrlLayout">
+      <item>
+       <widget class="QPushButton" name="discardButton">
+        <property name="minimumSize">
+         <size>
+          <width>150</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>150</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Discard &amp;&amp; Exit</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="ctrlSpacer">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="saveButton">
+        <property name="minimumSize">
+         <size>
+          <width>150</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>150</width>
+          <height>30</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Save &amp;&amp; Exit</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <tabstops>
+  <tabstop>frmSlider</tabstop>
+  <tabstop>sldrValue</tabstop>
+  <tabstop>intModeCheckBox</tabstop>
+  <tabstop>intThsSpinBox</tabstop>
+  <tabstop>dispRoiCheckBox</tabstop>
+  <tabstop>dispRoiBox</tabstop>
+  <tabstop>dispHmlCheckBox</tabstop>
+  <tabstop>dispJslCheckBox</tabstop>
+  <tabstop>discardButton</tabstop>
+  <tabstop>saveButton</tabstop>
+ </tabstops>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>frmSlider</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>sldrValue</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>77</x>
+     <y>663</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1191</x>
+     <y>679</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>sldrValue</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>frmSlider</receiver>
+   <slot>setValue(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1191</x>
+     <y>679</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>78</x>
+     <y>663</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>gapBtnRgnTS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>gapBtnRgnTE</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>786</x>
+     <y>280</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>818</x>
+     <y>282</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>gapBtnRgnTE</sender>
+   <signal>clicked()</signal>
+   <receiver>gapBtnRgnTS</receiver>
+   <slot>toggle()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>809</x>
+     <y>285</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>779</x>
+     <y>287</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>gapBtnRgnFS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>gapBtnRgnFE</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>779</x>
+     <y>321</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>815</x>
+     <y>321</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>gapBtnRgnFE</sender>
+   <signal>clicked()</signal>
+   <receiver>gapBtnRgnFS</receiver>
+   <slot>toggle()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>802</x>
+     <y>323</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>775</x>
+     <y>326</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>topBtnRgnTS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>topBtnRgnTE</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1038</x>
+     <y>166</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1070</x>
+     <y>165</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>topBtnRgnTE</sender>
+   <signal>clicked()</signal>
+   <receiver>topBtnRgnTS</receiver>
+   <slot>toggle()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1062</x>
+     <y>167</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1034</x>
+     <y>170</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>topBtnRgnFS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>topBtnRgnFE</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1037</x>
+     <y>204</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1071</x>
+     <y>205</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>topBtnRgnFE</sender>
+   <signal>clicked()</signal>
+   <receiver>topBtnRgnFS</receiver>
+   <slot>toggle()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1066</x>
+     <y>208</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1035</x>
+     <y>210</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btmBtnRgnTS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>btmBtnRgnTE</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1037</x>
+     <y>400</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1068</x>
+     <y>398</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btmBtnRgnTE</sender>
+   <signal>clicked()</signal>
+   <receiver>btmBtnRgnTS</receiver>
+   <slot>toggle()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1060</x>
+     <y>403</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1038</x>
+     <y>402</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btmBtnRgnFS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>btmBtnRgnFE</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1033</x>
+     <y>439</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1070</x>
+     <y>439</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btmBtnRgnFE</sender>
+   <signal>clicked()</signal>
+   <receiver>btmBtnRgnFS</receiver>
+   <slot>toggle()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1062</x>
+     <y>441</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1043</x>
+     <y>441</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>gapBtnRgnTS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>gapBtnRgnFS</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>705</x>
+     <y>283</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>706</x>
+     <y>323</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>gapBtnRgnFS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>gapBtnRgnTS</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>707</x>
+     <y>320</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>716</x>
+     <y>283</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>topBtnRgnTS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>topBtnRgnFS</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>960</x>
+     <y>172</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>962</x>
+     <y>205</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>topBtnRgnFS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>topBtnRgnTS</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>964</x>
+     <y>203</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>973</x>
+     <y>167</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btmBtnRgnTS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>btmBtnRgnFS</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>959</x>
+     <y>402</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>961</x>
+     <y>447</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btmBtnRgnFS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>btmBtnRgnTS</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>960</x>
+     <y>438</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>973</x>
+     <y>402</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>gapBtnRgnTS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>gapMrkSgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>729</x>
+     <y>286</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>700</x>
+     <y>228</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>gapBtnRgnFS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>gapMrkSgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>732</x>
+     <y>320</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>712</x>
+     <y>228</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>gapBtnRgnTS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>topRgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>744</x>
+     <y>280</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>937</x>
+     <y>78</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>gapBtnRgnFS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>topRgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>748</x>
+     <y>320</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>936</x>
+     <y>99</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>gapBtnRgnFS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>btmRgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>776</x>
+     <y>328</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>936</x>
+     <y>459</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>gapBtnRgnTS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>btmRgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>781</x>
+     <y>289</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>936</x>
+     <y>465</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>topBtnRgnTS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>topMrkSgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>989</x>
+     <y>167</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>959</x>
+     <y>110</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>topBtnRgnFS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>topMrkSgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1006</x>
+     <y>206</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>971</x>
+     <y>111</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>topBtnRgnFS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>gapRgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>989</x>
+     <y>205</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>786</x>
+     <y>215</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>topBtnRgnTS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>gapRgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>961</x>
+     <y>171</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>788</x>
+     <y>173</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>topBtnRgnTS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>btmRgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1012</x>
+     <y>172</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1018</x>
+     <y>292</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>topBtnRgnFS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>btmRgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1040</x>
+     <y>211</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1036</x>
+     <y>291</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btmBtnRgnTS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>btmMrkSgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>992</x>
+     <y>401</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>960</x>
+     <y>346</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btmBtnRgnFS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>btmMrkSgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>990</x>
+     <y>438</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>974</x>
+     <y>341</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btmBtnRgnTS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>gapRgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>957</x>
+     <y>407</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>776</x>
+     <y>345</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btmBtnRgnFS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>gapRgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>959</x>
+     <y>442</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>753</x>
+     <y>348</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btmBtnRgnTS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>topRgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1023</x>
+     <y>400</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>998</x>
+     <y>229</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>btmBtnRgnFS</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>topRgn</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>1036</x>
+     <y>438</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1016</x>
+     <y>229</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>intModeCheckBox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>manModeFrame</receiver>
+   <slot>setDisabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>728</x>
+     <y>517</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>740</x>
+     <y>460</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>intModeCheckBox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>intThsSpinBox</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>715</x>
+     <y>520</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>1029</x>
+     <y>522</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>dispRoiCheckBox</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>dispRoiBox</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>778</x>
+     <y>569</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>934</x>
+     <y>575</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

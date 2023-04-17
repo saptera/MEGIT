@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainLoader</class>
+ <widget class="QMainWindow" name="MainLoader">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>850</width>
+    <height>335</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>850</width>
+    <height>335</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>16777215</width>
+    <height>335</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>MEGIT Cross Verification Loader</string>
+  </property>
+  <widget class="QWidget" name="loaderWidget">
+   <layout class="QVBoxLayout" name="loaderLayout">
+    <property name="spacing">
+     <number>10</number>
+    </property>
+    <property name="leftMargin">
+     <number>10</number>
+    </property>
+    <property name="topMargin">
+     <number>10</number>
+    </property>
+    <property name="rightMargin">
+     <number>10</number>
+    </property>
+    <property name="bottomMargin">
+     <number>10</number>
+    </property>
+    <item>
+     <widget class="QGroupBox" name="reqGroup">
+      <property name="font">
+       <font>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="title">
+       <string>Required Files</string>
+      </property>
+      <layout class="QVBoxLayout" name="reqLayout">
+       <item>
+        <layout class="QHBoxLayout" name="frmLayout">
+         <item>
+          <widget class="QLineEdit" name="frmPath">
+           <property name="font">
+            <font>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="frmButton">
+           <property name="minimumSize">
+            <size>
+             <width>200</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Choose Frame File</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="crsLayout">
+         <item>
+          <widget class="QLineEdit" name="crsPath">
+           <property name="font">
+            <font>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="crsButton">
+           <property name="minimumSize">
+            <size>
+             <width>200</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Choose Cross CSV File</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="roiLayout">
+         <item>
+          <widget class="QLineEdit" name="roiPath">
+           <property name="font">
+            <font>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="roiButton">
+           <property name="minimumSize">
+            <size>
+             <width>200</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="text">
+            <string>Choose ROI File</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="Line" name="upperLine">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QGroupBox" name="optGroup">
+      <property name="font">
+       <font>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="title">
+       <string>Optional Files</string>
+      </property>
+      <layout class="QVBoxLayout" name="optLayout">
+       <item>
+        <layout class="QHBoxLayout" name="aitLayout">
+         <item>
+          <widget class="QLineEdit" name="aitPath">
+           <property name="font">
+            <font>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="toolTip">
+            <string>This file is required to activate [Intelligent Mode]</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="aitButton">
+           <property name="minimumSize">
+            <size>
+             <width>200</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="toolTip">
+            <string>This file is required to activate [Intelligent Mode]</string>
+           </property>
+           <property name="text">
+            <string>Choose Average Intensity File</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="hmlLayout">
+         <item>
+          <widget class="QLineEdit" name="hmlPath">
+           <property name="font">
+            <font>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="toolTip">
+            <string>This file is required to activate [Show HeatMap Label]</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="hmlButton">
+           <property name="minimumSize">
+            <size>
+             <width>200</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="toolTip">
+            <string>This file is required to activate [Show HeatMap Label]</string>
+           </property>
+           <property name="text">
+            <string>Choose HeatMap Prediction File</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="jslLayout">
+         <item>
+          <widget class="QLineEdit" name="jslPath">
+           <property name="font">
+            <font>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="toolTip">
+            <string>This file is required to activate [Show JSON Label]</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="jslButton">
+           <property name="minimumSize">
+            <size>
+             <width>200</width>
+             <height>0</height>
+            </size>
+           </property>
+           <property name="font">
+            <font>
+             <weight>50</weight>
+             <bold>false</bold>
+            </font>
+           </property>
+           <property name="toolTip">
+            <string>This file is required to activate [Show JSON Label]</string>
+           </property>
+           <property name="text">
+            <string>Choose JSON Prediction File</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="Line" name="lowerLine">
+      <property name="orientation">
+       <enum>Qt::Horizontal</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <layout class="QHBoxLayout" name="controlLayout">
+      <property name="spacing">
+       <number>50</number>
+      </property>
+      <property name="leftMargin">
+       <number>0</number>
+      </property>
+      <property name="topMargin">
+       <number>0</number>
+      </property>
+      <property name="rightMargin">
+       <number>0</number>
+      </property>
+      <property name="bottomMargin">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QPushButton" name="loadButton">
+        <property name="font">
+         <font>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Load</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="exitButton">
+        <property name="font">
+         <font>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="text">
+         <string>Exit</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
