@@ -1,14 +1,17 @@
+import copy
 import json
-import numpy as np
 import h5py as h5
+import numpy as np
 from shapely.geometry import Point, Polygon
-from megit.fio import cjsh_read
-from megit.data import lin2p, poly_lin_poschk, poly_area_poschk, get_frm_gap, crs_det_frm
+from megit.fio import hml_read, cjsh_read
+from megit.data import get_lbl_det, conv_hm2js_blob, conv_hm2js_max, arr_raw_jsl, get_proc_rng, pad_nan, sel_mtp, \
+    flt_spl_frm, lin2p, poly_lin_poschk, poly_area_poschk, get_frm_gap, crs_det_frm
 from megit.utils import prog_print
 
 """Function list:
     avgint_roi(roi_js, im_hdf, im_ext='png', disp=(True, 4)): Compute average intensity of ROIs.
     det_avgint(roi_int, th=5, disp=(True, 4)): Detect crossings based on average intensity of ROIs.
+    grp_conv_hm2js(hml_hdf, conv_meth='blob', smth=False, disp=(True, 4), **kwargs): Convert HeatMap to JSON labels.
     det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)): Detect crossings based on model prediction positions.
     comb_det(avg_grd, avg_cns, prd_det, prd_rer, frm_lst, th=6): Combining detection results.
 """
@@ -106,6 +109,135 @@ def det_avgint(roi_int, th_grd=5, th_cns=10, disp=(True, 4)):
     btm_det_cns = np.where(btm_avg > max(btm_avg) - th_cns, 0, 1).tolist()
     cns = {'gap': gap_det_cns, 'top': top_det_cns, 'btm': btm_det_cns}
     return grd, cns
+
+
+def grp_conv_hm2js(hml_hdf, conv_meth='blob', smth=False, disp=(True, 4), **kwargs):
+    """ Convert all HeatMap labels in the HDF5 to JSON labels.
+
+    Args:
+        hml_hdf (str): HeatMap label HDF5 file
+        conv_meth (str): ['blob', 'max'] HeatMap to JSON conversion method (default: 'blob')
+        smth (bool): Defines if the output JSON label need to be smoothed (default: False)
+        disp (tuple[bool, int]): Process print control, flag and indention (default: (True, 4))
+        **kwargs: Extra conversion parameters
+
+    Keyword Args:
+        return_raw (bool): True - raw JSON labels will be returned, False - None returned (default: True)
+        fallback_max (bool): Flag for MAX method will be used for None during conversion (default: True)
+        multiselect_max (bool): Flag for MAX method will be used for multipoint during conversion (default: False)
+        heatmap_threshold (int or float): HeatMap minimum peak value (default: 5)
+        blob_area (tuple[float, float]): Area limits for 'blob' method (default: (25, 100))
+        blob_circularity (tuple[float, float]): Circularity limits for 'blob' method (default: (0.4, 1.1))
+        blob_inertia (tuple[float, float]): Inertia (0 - 1) limits for 'blob' method (default: (0.2, 1.1))
+        blob_convexity (tuple[float, float]): Convexity limits for 'blob' method (default: (0.1, 1000))
+        select_search (int): Flanking indices used for process multipoint selection (default: 120)
+        miss_search (int): Flanking indices used for process missing value padding (default: 60)
+        smooth_window (int): Window size for smoothing median filter (default: 8)
+
+    Returns:
+        tuple[dict, dict] or tuple[dict, None]:
+            jsl_data (tuple[dict[str, list[float]], list[int], list[int]]): Converted JSON label
+            raw_data (dict[int, dict[str, dict[str, float] or list[dict[str, float]] or None]] or None): Raw JSON label
+    """
+    disp_prt = disp[0]
+    disp_ind = 0 if disp[1] < 0 else disp[1]
+    # Get keyword argument values
+    ret_raw = kwargs.get('return_raw', True)
+    fallback_max = kwargs.get('fallback_max', True)
+    multiselect_max = kwargs.get('multiselect_max', False)
+    hm_th = kwargs.get('heatmap_threshold', 5)
+    det_area = kwargs.get('blob_area', (25, 100))
+    det_circ = kwargs.get('blob_circularity', (0.4, 1.1))
+    det_inrt = kwargs.get('blob_inertia', (0.2, 1.1))
+    det_conv = kwargs.get('blob_convexity', (0.1, 1000))
+    mtp_srch_rng = kwargs.get('select_search', 120)
+    nan_srch_rng = kwargs.get('miss_search', 60)
+    smth_win = kwargs.get('smooth_window', 8)
+
+    # Load HeatMap file and get data features
+    hml_fp = h5.File(hml_hdf, 'r')
+    frm_lst = sorted([int(i) for i in hml_fp.keys()])
+    detector = get_lbl_det(det_area, det_circ, det_inrt, det_conv) if conv_meth == 'blob' else None
+    # Raw JSON label conversion
+    raw_data = {}  # INIT VAR
+    for i, frm in enumerate(frm_lst):
+        hml_pred = hml_read(hml_fp, str(frm))
+        # Process conversion with defined method
+        if conv_meth == 'max':
+            jsl_pred = conv_hm2js_max(hml_pred, hm_th)  # MAX method only give single prediction
+        else:
+            if conv_meth == 'blob':
+                jsl_pred = conv_hm2js_blob(hml_pred, detector)
+            # Add [elif] for possible future conversion methods
+            else:
+                jsl_pred = None  # Placeholder only
+            # Optional fallbacks to MAX method on irregular predictions
+            fb_lst = []  # INIT/RESET VAR
+            for v in jsl_pred:
+                if (jsl_pred[v] is None) and fallback_max:
+                    fb_lst.append(v)
+                elif (len(jsl_pred[v]) > 1) and multiselect_max:
+                    fb_lst.append(v)
+            if fb_lst:
+                max_pred = conv_hm2js_max(hml_pred, hm_th)
+                for v in fb_lst:
+                    jsl_pred[v] = copy.deepcopy(max_pred[v])
+        raw_data[frm] = jsl_pred
+        disp_prt and prog_print(i, len(frm_lst), "%sConverting HeatMap to raw JSON labels:" % (' ' * disp_ind))
+    # Close HeatMap HDF5 file
+    hml_fp.close()
+
+    # Postprocess raw JSON labels
+    jsl_data = {frm_lst[frm_num]: {} for frm_num in range(len(frm_lst))}  # INIT VAR
+    for lbl_key in ['nose', 'left_ear', 'right_ear']:
+        disp_prt and print("%sPost-processing [%s] data" % (' ' * disp_ind, lbl_key))
+        # Arrange converted data
+        lbl_kpl, nan_ptl, mtp_ptl = arr_raw_jsl(raw_data, lbl_key)
+        # Process multiple value selection
+        if (conv_meth != 'max') and (not multiselect_max):
+            disp_prt and print("%sProcess multiple value selection" % (' ' * (disp_ind + 2)))
+            sel_rng, sel_grp = get_proc_rng(mtp_ptl, frm_lst, mtp_srch_rng)
+            for idx in range(len(sel_grp)):
+                x = lbl_kpl['x'][sel_rng[idx][0]:sel_rng[idx][1]]
+                y = lbl_kpl['y'][sel_rng[idx][0]:sel_rng[idx][1]]
+                pos = [p - sel_rng[idx][0] for p in sel_grp[idx]]
+                sel_x, sel_y, sel_p = sel_mtp(x, y, pos)
+                # Replace values
+                for p in range(len(sel_grp[idx])):
+                    lbl_kpl['x'][sel_grp[idx][p]] = sel_x[sel_p[p][0]]
+                    lbl_kpl['y'][sel_grp[idx][p]] = sel_y[sel_p[p][0]]
+                    lbl_kpl['r'][sel_grp[idx][p]] = lbl_kpl['r'][sel_grp[idx][p]][sel_p[p][1]]
+        # Process missing value padding
+        disp_prt and print("%sProcess missing value padding" % (' ' * (disp_ind + 2)))
+        pad_rng, pad_grp = get_proc_rng(nan_ptl, frm_lst, nan_srch_rng)
+        for idx in range(len(pad_grp)):
+            x = lbl_kpl['x'][pad_rng[idx][0]:pad_rng[idx][1]]
+            y = lbl_kpl['y'][pad_rng[idx][0]:pad_rng[idx][1]]
+            r = lbl_kpl['r'][pad_rng[idx][0]:pad_rng[idx][1]]
+            pad_x, pad_p = pad_nan(x, filt=True)
+            pad_y = pad_nan(y, filt=True)[0]
+            pad_r = pad_nan(r, filt=True)[0]
+            # Replace values
+            for p in range(len(pad_grp[idx])):
+                lbl_kpl['x'][pad_grp[idx][p]] = pad_x[pad_p[p]]
+                lbl_kpl['y'][pad_grp[idx][p]] = pad_y[pad_p[p]]
+                lbl_kpl['r'][pad_grp[idx][p]] = pad_r[pad_p[p]]
+        # Process label smoothing
+        if smth:
+            disp_prt and print("%sSmoothing label data..." % (' ' * (disp_ind + 2)))
+            x = flt_spl_frm(lbl_kpl['x'], smth_win, frm_lst)
+            y = flt_spl_frm(lbl_kpl['y'], smth_win, frm_lst)
+            lbl_kpl['x'] = copy.deepcopy(x)
+            lbl_kpl['y'] = copy.deepcopy(y)
+        # Arrange output data
+        for frm_num in range(len(frm_lst)):
+            jsl_data[frm_lst[frm_num]][lbl_key] = {k: lbl_kpl[k][frm_num] for k in lbl_kpl}
+
+    # Return results
+    if ret_raw:
+        return jsl_data, raw_data
+    else:
+        return jsl_data, None
 
 
 def det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)):
