@@ -12,9 +12,9 @@ import warnings
     brt_con(img, brt=0, con=0): Adjust image brightness and contrast.
     draw_text(img, text, x=0, y=0, scale=1, color='w', has_bkg=True, background='b'): Put text with background.
   # Label data structure conversion functions
+    conv_hm2js_max(hml_data, th): Convert JSON type label to HeatMap type label with global maximum.
     get_lbl_det(area, circularity, inertia, convexity): Generate a detector for extracting blobs from 2D matrix.
     conv_hm2js_blob(hml_data, detector): Convert JSON type label to HeatMap type label with simple blob detector.
-    conv_hm2js_max(hml_data, th): Convert JSON type label to HeatMap type label with global maximum.
     det_elp_lbl(hml_data): Detect HeatMap label position with ellipse detector.
     arr_raw_jsl(jsl_data, lbl_key): Arrange raw HeatMap converted JSON labels.
   # Label data plotting functions
@@ -113,14 +113,35 @@ def draw_text(img, text, x=0, y=0, scale=1, color=(255, 255, 255), has_bkg=True,
 
 # Label data structure conversion functions -------------------------------------------------------------------------- #
 
+def conv_hm2js_max(hml_data, th):
+    """ Convert JSON type label to HeatMap type label with global maximum.
+
+    Args:
+        hml_data (dict[str, np.ndarray]): HeatMap format prediction label
+        th (int or float): HeatMap minimum peak value
+
+    Returns:
+        dict[str, list[dict[str, float]] or None]: List of dictionary with JSON label info
+    """
+    jsl_data = {}  # INIT VAR
+    for lbl in hml_data:
+        hm = hml_data[lbl]
+        if hm.max() > th:
+            y, x = np.unravel_index(np.argmax(hm), hm.shape)
+            jsl_data[lbl] = [{'x': x.item(), 'y': y.item(), 'r': 1}]
+        else:
+            jsl_data[lbl] = None
+    return jsl_data
+
+
 def get_lbl_det(area, circularity, inertia, convexity):
     """ Generate a detector for extracting blobs from 2D matrix.
 
     Args:
-        area (tuple[float, float]): Extracted blobs area threshold limit
-        circularity (tuple[float, float]): Extracted blobs circularity (4pi * Area / Perimeter ^ 2) threshold limit
-        inertia (tuple[float, float]): Extracted blobs inertia (0 - 1) threshold limit
-        convexity (tuple[float, float]): Extracted blobs circularity (4pi * Area / Perimeter ^ 2) threshold limit
+        area (tuple[float, float]): Extracted blobs area limits
+        circularity (tuple[float, float]): Extracted blobs circularity (4pi * Area / Perimeter ^ 2) limits
+        inertia (tuple[float, float]): Extracted blobs inertia (0 - 1) limits
+        convexity (tuple[float, float]): Extracted blobs convexity (Area / Area of Convex Hull) limits
 
     Returns:
         cv.SimpleBlobDetector: OpenCV simple blob detector
@@ -154,7 +175,7 @@ def conv_hm2js_blob(hml_data, detector):
     """ Convert JSON type label to HeatMap type label with simple blob detector.
 
     Args:
-        hml_data (list[dict]): List of dictionary with HeatMap type label info
+        hml_data (dict[str, np.ndarray]): HeatMap format prediction label
         detector (cv.SimpleBlobDetector): OpenCV simple blob detector for HeatMap
 
     Returns:
@@ -162,34 +183,13 @@ def conv_hm2js_blob(hml_data, detector):
     """
     jsl_data = {}  # INIT VAR
     for lbl in hml_data:
-        hm = lbl['heatmap']
+        hm = hml_data[lbl]
         hm = np.where(hm < hm.max() * 0.5, 255, 0).astype(np.uint8)
         keypoint = detector.detect(hm)
         kp_lst = []  # INIT/RESET VAR
         for kp in keypoint:
             kp_lst.append({'x': kp.pt[0], 'y': kp.pt[1], 'r': kp.size / 2})
-        jsl_data[lbl['label']] = copy.deepcopy(kp_lst) if kp_lst else None
-    return jsl_data
-
-
-def conv_hm2js_max(hml_data, th):
-    """ Convert JSON type label to HeatMap type label with global maximum.
-
-    Args:
-        hml_data (list[dict]): List of dictionary with HeatMap type label info
-        th (int or float): HeatMap peak value threshold
-
-    Returns:
-        dict[str, list[dict[str, float]] or None]: List of dictionary with JSON label info
-    """
-    jsl_data = {}  # INIT VAR
-    for lbl in hml_data:
-        hm = lbl['heatmap']
-        if hm.max() > th:
-            y, x = np.unravel_index(np.argmax(hm), hm.shape)
-            jsl_data[lbl['label']] = [{'x': x.item(), 'y': y.item(), 'r': 1}]
-        else:
-            jsl_data[lbl['label']] = None
+        jsl_data[lbl] = copy.deepcopy(kp_lst) if kp_lst else None
     return jsl_data
 
 
@@ -197,22 +197,22 @@ def det_elp_lbl(hml_data):
     """ Detect HeatMap label position with ellipse detector.
 
     Args:
-        hml_data (list[dict]): List of dictionary with HeatMap type label info
+        hml_data (dict[str, np.ndarray]): HeatMap format prediction label
 
     Returns:
         dict[str, list[dict[str, float]] or None]: List of dictionary with ellipse fitting info
     """
     elp_data = {}  # INIT VAR
     for lbl in hml_data:
-        heat = lbl['heatmap']
+        heat = hml_data[lbl]
         blur = cv.blur(heat, (3, 3))
         pred = np.where(blur < blur.max() * 0.5, 255, 0).astype(np.uint8)
         edge = cv.Canny(pred, 150, 300)
         cont, _ = cv.findContours(edge, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-        elp_data[lbl['label']] = []  # INIT VAR
+        elp_data[lbl] = []  # INIT VAR
         for c in cont:
             if c.shape[0] >= 5:
-                elp_data[lbl['label']].append(cv.fitEllipse(c))
+                elp_data[lbl].append(cv.fitEllipse(c))
     return elp_data
 
 
@@ -239,15 +239,15 @@ def arr_raw_jsl(jsl_data, lbl_key):
     lbl_kpl = {'x': [], 'y': [], 'r': []}  # INIT VAR, defined keypoint feature lists
     nan_ptl = []  # INIT VAR, missing keypoint frame indices
     mtp_ptl = []  # INIT VAR, multi-prediction keypoint frame indices
-    for frm in jsl_data:
+    for i, frm in enumerate(jsl_data):
         if jsl_data[frm][lbl_key] is None:
             [lbl_kpl[k].append(None) for k in lbl_kpl]
-            nan_ptl.append(int(frm))
+            nan_ptl.append(i)
         elif len(jsl_data[frm][lbl_key]) == 1:
             [lbl_kpl[k].append(jsl_data[frm][lbl_key][0][k]) for k in lbl_kpl]
         else:
             [lbl_kpl[k].append([p[k] for p in jsl_data[frm][lbl_key]]) for k in lbl_kpl]
-            mtp_ptl.append(int(frm))
+            mtp_ptl.append(i)
     return lbl_kpl, nan_ptl, mtp_ptl
 
 

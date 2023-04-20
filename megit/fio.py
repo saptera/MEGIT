@@ -3,21 +3,18 @@ import base64
 import copy
 import csv
 import json
+import h5py as h5
 import zlib
 import hashlib
-import pickle as pkl
+import numpy as np
 import cv2.cv2 as cv
 import warnings
 
 """Function list:
   # Video IO functions
     img2vid(img_list, vid_name, fps=30, vid_path=None): Create a lossless AVI video file with given images.
-  # Legacy label file IO functions
-    jsl_read(js_lbl_file):  Import standard JSON label file.
-    jsl_write(dst_jsl_file, jsl_data):  Write JSON label data to file.
-    hml_read(hm_lbl_file):  Import HeatMap label file.
-    hml_write(dst_hml_file, hml_data):  Write HeatMap label data to file.
   # Label file IO functions
+    hml_read(hml_fp, key): Retrieve single HeatMap label from stored HDF5 file.
     cjsh_read(file): Compressed JSON with Secure Hash embedded (CJSH) file, reading function.
     cjsh_write(file, data): Compressed JSON with Secure Hash embedded (CJSH) file, writing function.
   # Experiment result file IO functions
@@ -54,85 +51,24 @@ def img2vid(img_list, vid_name, fps=30, vid_path=None):
     return os.path.isfile(vid_file)
 
 
-# Legacy label file IO functions ------------------------------------------------------------------------------------- #
-
-def jsl_read(file):
-    """ Import standard JSON label file.
-
-    Args:
-        file (str): Labelling file contained with labels
-
-    Returns:
-        list[dict]: List of dictionary with label info
-    """
-    with open(file) as infile:
-        jsl_data = json.load(infile)
-    return jsl_data
-
-
-def jsl_write(file, jsl_data):
-    """ Write JSON label data to file.
-
-    Args:
-        file (str): Labelling file to be write label data (*.json)
-        jsl_data (list[dict]): List of dictionary with label info
-
-    Returns:
-        bool: File creation status
-    """
-    if len(jsl_data) != 0:
-        try:
-            with open(file, 'w') as outfile:
-                json.dump(jsl_data, outfile)
-            return True
-        except OSError as x:
-            warnings.warn("[Errno %d] when writing file '%s': %s" % (x.errno, file, x.strerror), Warning, stacklevel=2)
-            return False
-    else:
-        print('Empty label data input, file not created!')
-        return False
-
-
-def hml_read(file):
-    """ Import HeatMap label file.
-
-    Args:
-        file (str): Labelling file contained with HeatMap labels
-
-    Returns:
-        list[dict]: List of dictionary with HeatMap label info
-    """
-    with open(file, 'rb') as infile:
-        comp = pkl.load(infile)
-    hml_data = pkl.loads(zlib.decompress(comp))
-    return hml_data
-
-
-def hml_write(file, hml_data):
-    """ Write HeatMap label data to file.
-
-    Args:
-        file (str): Labelling file to write HeatMap labels (*.pkl)
-        hml_data (list[dict]): List of dictionary with HeatMap label info
-
-    Returns:
-        bool: File creation status
-    """
-    if len(hml_data) != 0:
-        comp = zlib.compress(pkl.dumps(hml_data, protocol=2))
-        try:
-            with open(file, 'wb') as outfile:
-                pkl.dump(comp, outfile, protocol=2)
-            return True
-        except OSError as x:
-            warnings.warn("[Errno %d] when writing file '%s': %s" % (x.errno, file, x.strerror), Warning, stacklevel=2)
-            return False
-    else:
-        warnings.warn("Empty label data input, file not created!", Warning, stacklevel=2)
-        return False
-
-
 # Label file IO functions -------------------------------------------------------------------------------------------- #
+
+def hml_read(hml_fp, key):
+    """ Retrieve single HeatMap label from stored HDF5 file.
+
+    Args:
+        hml_fp (h5.File): HeatMap label HDF5 file pointer
+        key (str): Specific key to retrieve certain predictions
+
+    Returns:
+        dict[str, np.ndarray]: HeatMap format prediction label
+    """
+    lbl_lst = list(hml_fp[key].keys())
+    hml = {k: None for k in lbl_lst}  # INIT VAR
+    for lbl in lbl_lst:
+        hml[lbl] = hml_fp[key][lbl][()]
+    return hml
+
 
 def cjsh_read(file):
     """ Compressed JSON with Secure Hash embedded (CJSH) file, reading function.
