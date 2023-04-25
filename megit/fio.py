@@ -137,12 +137,11 @@ def read_roi_poly(roi_json):
     key = {'C': 'gap', 'T': 'top', 'B': 'btm', 'W': 'wal'}
     rgn = {'C': None, 'T': None, 'B': None, 'W': None}  # INIT VAR
     ply = {}  # INIT VAR
-    curr = 0  # INIT VAR
-    for i in roi:
-        frm = int(i)
+    curr = list(roi.keys())[0]  # INIT VAR
+    for frm in roi:
         ply[frm] = {None: frm, 'gap': None, 'top': None, 'btm': None}  # [None] for default, optional [wal] is omitted
-        for k in roi[i]:
-            rect = roi[i][k]
+        for k in roi[frm]:
+            rect = roi[frm][k]
             # This logical operation is safe as the raw JSON ROI data will have either all None or all not None
             if rect is None:
                 ply[frm] = {None: curr}

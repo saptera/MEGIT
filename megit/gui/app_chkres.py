@@ -169,7 +169,7 @@ class CrossVerifier(QtWidgets.QMainWindow, Ui_CrossVerifier):
         plt_roi = roi_det if plt_roi == 'det' else plt_roi
         if plt_roi is not None:
             roi_ply = \
-                [np.rint(roi[frm_idx].get(plt_roi, roi[roi[frm_idx][None]][plt_roi])).astype(int).reshape((-1, 1, 2))]
+                [np.rint(roi[frm_key].get(plt_roi, roi[roi[frm_key][None]][plt_roi])).astype(int).reshape((-1, 1, 2))]
             pfr = cv.polylines(pfr, roi_ply, isClosed=True, color=color_palette[clr_key + plt_roi], thickness=1)
         # Put manual verification results
         for cfd in ['gap', 'top', 'btm']:
@@ -466,7 +466,8 @@ class MainLoader(QtWidgets.QMainWindow, Ui_MainLoader):
         # Get ROI information
         roi = read_roi_poly(self.roiPath.text())
         # Get set information
-        set_flg = sum([roi[0]['gap'][_][0] for _ in range(4)]) < sum([roi[0]['top'][_][0] for _ in range(4)])
+        rik = list(roi.keys())[0]
+        set_flg = sum([roi[rik]['gap'][_][0] for _ in range(4)]) < sum([roi[rik]['top'][_][0] for _ in range(4)])
         clr_key = 'tst_' if set_flg else 'byj_'
         # Get average intensity data
         if ait_flag:

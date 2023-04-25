@@ -320,10 +320,10 @@ def det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)):
     rer = {'T': np.zeros(len(feat), dtype=np.uint8),
            'B': np.zeros(len(feat), dtype=np.uint8)}  # INIT VAR
     for i, frm in enumerate(feat):
-        if feat[frm]['C'] is not None: ft['C'] = feat[i]['C']
-        if feat[frm]['T'] is not None: ft['T'] = feat[i]['T']
-        if feat[frm]['B'] is not None: ft['B'] = feat[i]['B']
-        if feat[frm]['W'] is not None: wln = feat[i]['W']
+        if feat[frm]['C'] is not None: ft['C'] = feat[frm]['C']
+        if feat[frm]['T'] is not None: ft['T'] = feat[frm]['T']
+        if feat[frm]['B'] is not None: ft['B'] = feat[frm]['B']
+        if feat[frm]['W'] is not None: wln = feat[frm]['W']
         for k in ['C', 'T', 'B']:
             # Check crossing with [left_ear] and [right_ear] key
             wth, crs = poly_area_poschk(ft[k]['ln'], ft[k]['sl'], ft[k]['sh'], pred[i][1:], ths[k], sup[k], flp[k])
