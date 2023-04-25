@@ -336,9 +336,10 @@ def det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)):
                 if crs:
                     poly = Polygon(pred[i])
                     itsc = poly.intersection(ft[k]['rg']).area
-                    if itsc / poly.area >= 0.5:
-                        det[k][i] = 1
-                        break
+                    if poly.area > 0:
+                        if itsc / poly.area >= 0.5:
+                            det[k][i] = 1
+                            break
         if wln is not None:
             # For top ROI, check if [nose] and [right_ear] key has crossed wall line
             rer['T'][i] = 1 if poly_lin_poschk(wln, [pred[i][0], pred[i][2]], th=0, sup=True) else 0
