@@ -15,7 +15,7 @@ from megit.gui.dgn_chkres_ctrl import Ui_CrossVerifier
 # Global definitions  -----------------------------------------------------------------------------------------------  #
 # Define colour palettes
 color_palette = {'tst_gap': (0, 158, 115), 'tst_top': (0, 114, 178), 'tst_btm': (213, 94, 0), 'tst_wal': (75, 0, 146),
-                 'byj_gap': (204, 121, 167)}  # Colourblind safe palette
+                 'byj_gap': (204, 121, 167), 'byj_top': (86, 180, 233), 'byj_btm': (230, 159, 0)}  # Colourblind safe
 color_labels = {"nose": (255, 0, 0), "left_ear": (0, 255, 0), "right_ear": (0, 0, 255)}
 color_labels_alt = {"nose": (31, 119, 180), "left_ear": (255, 127, 14), "right_ear": (214, 39, 40)}
 
