@@ -306,7 +306,7 @@ def det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)):
             rg = Polygon([roi[frm]['B']['tl'], roi[frm]['B']['tr'], roi[frm]['B']['br'], roi[frm]['B']['bl']])
             feat[int(frm)]['B'] = {'ln': ln, 'sl': sl, 'sh': sh, 'rg': rg}
         if tst and roi[frm]['W'] is not None:
-            ln = lin2p(roi[frm]['W']['tl'][::-1], roi[frm]['W']['bl'][::-1])
+            ln = lin2p(roi[frm]['W']['tl'][::-1], roi[frm]['W']['bl'][::-1])  # Flip X/Y for near-vertical line
             feat[int(frm)]['W'] = ln
 
     # Compute crossings
@@ -341,10 +341,10 @@ def det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)):
                             det[k][i] = 1
                             break
         if wln is not None:
-            # For top ROI, check if [nose] and [right_ear] key has crossed wall line
-            rer['T'][i] = 1 if poly_lin_poschk(wln, [pred[i][0], pred[i][2]], th=0, sup=True) else 0
-            # For bottom ROI, check if [nose] and [left_ear] key has crossed wall line
-            rer['B'][i] = 1 if poly_lin_poschk(wln, [pred[i][0], pred[i][1]], th=0, sup=True) else 0
+            # For top ROI, check if [nose] and [right_ear] key has crossed wall line, flip points
+            rer['T'][i] = 1 if poly_lin_poschk(wln, [pred[i][0][::-1], pred[i][2][::-1]], th=0, sup=False) else 0
+            # For bottom ROI, check if [nose] and [left_ear] key has crossed wall line, flip points
+            rer['B'][i] = 1 if poly_lin_poschk(wln, [pred[i][0][::-1], pred[i][1][::-1]], th=0, sup=False) else 0
         disp_prt and prog_print(i, len(feat), "%sComputing cross:" % (' ' * disp_ind))
 
     # Covert to binary lists
@@ -410,5 +410,5 @@ def comb_det(avg_grd, avg_cns, prd_det, prd_rer, frm_lst, th=6):
                     crs.append([det[tmp[0]][0], det[tmp[1]][1]])
             # Set results
             for i in crs:
-                res[k][frm_idx[i[0]]:frm_idx[i[1]]] = 1
+                res[k][frm_idx[i[0]]:frm_idx[i[1]] + 1] = 1
     return {k: res[k].tolist() for k in res}

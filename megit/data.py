@@ -731,6 +731,9 @@ def crs_det(crs_lst, th=6):
             if accu >= th:
                 started = True
                 init = n
+    # Check if the cross continues at the end of [crs_lst]
+    if started:
+        crs_rng.append([init, len(crs_lst) - 1])
     return crs_rng
 
 
