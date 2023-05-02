@@ -329,14 +329,18 @@ def det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)):
             wth, crs = poly_area_poschk(ft[k]['ln'], ft[k]['sl'], ft[k]['sh'], pred[i][1:], ths[k], sup[k], flp[k])
             if wth:
                 det[k][i] = 1
+                if (not tst) and (k == 'C'):  # Extra feature check for by-juvenile at 'C' = [gap] region
+                    if pred[i][0][0] < (pred[i][1][0] + pred[i][2][0]) / 2 - 1:  # Check if head is pointing to left
+                        det[k][i] = 0
+                        break
                 break
             else:
                 # If [left_ear] and [right_ear] already crossed centre line, but outside of side lines
                 # Check if the head has more than 50% inside current ROI
                 if crs:
                     poly = Polygon(pred[i])
-                    itsc = poly.intersection(ft[k]['rg']).area
                     if poly.area > 0:
+                        itsc = poly.intersection(ft[k]['rg']).area
                         if itsc / poly.area >= 0.5:
                             det[k][i] = 1
                             break
