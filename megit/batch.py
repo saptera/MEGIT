@@ -330,9 +330,9 @@ def det_prdpos(roi_js, lbl_cj, tst=True, th=0, disp=(True, 4)):
             if wth:
                 det[k][i] = 1
                 if (not tst) and (k == 'C'):  # Extra feature check for by-juvenile at 'C' = [gap] region
-                    if pred[i][0][0] < (pred[i][1][0] + pred[i][2][0]) / 2 - 1:  # Check if head is pointing to left
+                    if pred[i][0][0] < (pred[i][1][0] + pred[i][2][0]) / 2 - 5:  # Check if head is pointing to left
                         det[k][i] = 0
-                        break
+                        continue
                 break
             else:
                 # If [left_ear] and [right_ear] already crossed centre line, but outside of side lines
