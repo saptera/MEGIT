@@ -99,10 +99,16 @@ class CrossVerifier(QtWidgets.QMainWindow, Ui_CrossVerifier):
         global curr_frm
         if type(event) == QtGui.QKeyEvent:
             if event.key() == QtCore.Qt.Key_A or event.key() == QtCore.Qt.Key_Left:
-                curr_frm -= 1
+                if event.modifiers() == QtCore.Qt.ShiftModifier:
+                    curr_frm -= 10
+                else:
+                    curr_frm -= 1
                 self.frmSlider.setValue(curr_frm)
             elif event.key() == QtCore.Qt.Key_D or event.key() == QtCore.Qt.Key_Right:
-                curr_frm += 1
+                if event.modifiers() == QtCore.Qt.ShiftModifier:
+                    curr_frm += 10
+                else:
+                    curr_frm += 1
                 self.frmSlider.setValue(curr_frm)
             elif event.key() == QtCore.Qt.Key_V:  # Intelligent mode single frame cross
                 if self.__int_flag:
