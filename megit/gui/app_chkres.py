@@ -155,6 +155,7 @@ class CrossVerifier(QtWidgets.QMainWindow, Ui_CrossVerifier):
         frm_key = str(res['frm'][frm_idx])
         # Read frame image
         pfr = cv.cvtColor(frm_fp[frm_key][()], cv.COLOR_GRAY2BGR)
+        txt_x = 10 if clr_key == 'tst_' else 190
         # Plot predictions
         if plt_hml:
             hml = {kn: hml_fp[frm_key][kn][()] for kn in hml_fp[frm_key].keys()}
@@ -163,12 +164,12 @@ class CrossVerifier(QtWidgets.QMainWindow, Ui_CrossVerifier):
             jsl_clst = color_labels_alt if plt_hml else color_labels
             pfr = jsl_plt(jsl_pd[frm_key], pfr, raw=False, clst=jsl_clst)
         # Put frame number
-        pfr = draw_text(pfr, "%05d" % res['frm'][frm_idx], 10, 10, scale=0.5)
+        pfr = draw_text(pfr, "%05d" % res['frm'][frm_idx], txt_x, 5, scale=0.5)
         # Put detection results
         roi_det = None
         for cfd in ['gap', 'top', 'btm']:
             if res[cfd][frm_idx] == 1:
-                pfr = draw_text(pfr, cfd.upper(), 10, 35, scale=0.5, color=color_palette[clr_key + cfd])
+                pfr = draw_text(pfr, cfd.upper(), txt_x, 30, scale=0.5, color=color_palette[clr_key + cfd])
                 roi_det = cfd
                 break
         # Plot ROI
@@ -180,13 +181,13 @@ class CrossVerifier(QtWidgets.QMainWindow, Ui_CrossVerifier):
         # Put manual verification results
         for cfd in ['gap', 'top', 'btm']:
             if man_crs[cfd][frm_idx] == 1:
-                pfr = draw_text(pfr, 'V ' + cfd.upper(), 10, 220, scale=0.5, color=(34, 139, 34))
+                pfr = draw_text(pfr, 'V ' + cfd.upper(), txt_x, 230, scale=0.5, color=(34, 139, 34))
                 break
             elif man_crs[cfd][frm_idx] == 0:
-                pfr = draw_text(pfr, 'X ' + cfd.upper(), 10, 220, scale=0.5, color=(60, 20, 220))
+                pfr = draw_text(pfr, 'X ' + cfd.upper(), txt_x, 230, scale=0.5, color=(60, 20, 220))
                 break
             elif man_crs[cfd][frm_idx] == -1:
-                pfr = draw_text(pfr, "No Diff", 10, 220, scale=0.5, color=(0, 215, 255))
+                pfr = draw_text(pfr, "No Diff", txt_x, 230, scale=0.5, color=(0, 215, 255))
                 break
         # Resize and return
         pfr = cv.resize(pfr, (600, 600), interpolation=cv.INTER_CUBIC)  # Frame size 600 * 600
