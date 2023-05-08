@@ -414,5 +414,5 @@ def comb_det(avg_grd, avg_cns, prd_det, prd_rer, frm_lst, th=6):
                     crs.append([det[tmp[0]][0], det[tmp[1]][1]])
             # Set results
             for i in crs:
-                res[k][frm_idx[i[0]]:frm_idx[i[1]] + 1] = 1
+                res[k][frm_idx[i[0]]:frm_idx[i[1]]] = 1
     return {k: res[k].tolist() for k in res}
