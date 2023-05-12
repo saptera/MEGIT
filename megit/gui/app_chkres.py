@@ -35,7 +35,7 @@ man_crs = {}  # Manual correction data
 # [CrossVerifier] MEGIT Cross-Verifier main GUI  --------------------------------------------------------------------  #
 class CrossVerifier(QtWidgets.QMainWindow, Ui_CrossVerifier):
     def __init__(self, parent=None):
-        global set_flg
+        global set_flg, roi
         # Set up GUI elements
         super(CrossVerifier, self).__init__(parent)
         self.setupUi(self)
@@ -51,6 +51,7 @@ class CrossVerifier(QtWidgets.QMainWindow, Ui_CrossVerifier):
         self.modeLine.setText("Manual mode: Use buttons to set crossings")
         self.statusBar().addPermanentWidget(self.modeLine)
         # Set local control flags
+        self.__tot_frm = len(roi) - 1
         self.__disp_roi = None
         self.__disp_hml = False
         self.__disp_jsl = False
@@ -100,15 +101,15 @@ class CrossVerifier(QtWidgets.QMainWindow, Ui_CrossVerifier):
         if type(event) == QtGui.QKeyEvent:
             if event.key() == QtCore.Qt.Key_A or event.key() == QtCore.Qt.Key_Left:
                 if event.modifiers() == QtCore.Qt.ShiftModifier:
-                    curr_frm -= 10
+                    curr_frm = max(curr_frm - 10, 0)
                 else:
-                    curr_frm -= 1
+                    curr_frm = max(curr_frm - 1, 0)
                 self.frmSlider.setValue(curr_frm)
             elif event.key() == QtCore.Qt.Key_D or event.key() == QtCore.Qt.Key_Right:
                 if event.modifiers() == QtCore.Qt.ShiftModifier:
-                    curr_frm += 10
+                    curr_frm = min(curr_frm + 10, self.__tot_frm)
                 else:
-                    curr_frm += 1
+                    curr_frm = min(curr_frm + 1, self.__tot_frm)
                 self.frmSlider.setValue(curr_frm)
             elif event.key() == QtCore.Qt.Key_V:  # Intelligent mode single frame cross
                 if self.__int_flag:
