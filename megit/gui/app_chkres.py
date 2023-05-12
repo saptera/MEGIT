@@ -4,7 +4,7 @@ import tempfile
 import csv
 import h5py as h5
 import numpy as np
-import cv2.cv2 as cv
+import cv2 as cv
 from megit.fio import cjsh_read, read_roi_poly, read_crscsv_set
 from megit.data import draw_text, hml_plt, jsl_plt
 from PyQt5 import QtCore, QtGui, QtWidgets

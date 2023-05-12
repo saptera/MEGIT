@@ -4,7 +4,7 @@ import json
 import h5py as h5
 import math
 import numpy as np
-import cv2.cv2 as cv
+import cv2 as cv
 from megit.data import get_frm, brt_con, draw_text
 from megit.utils import mk_outdir
 from PyQt5 import QtCore, QtGui, QtWidgets

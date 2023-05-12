@@ -3,7 +3,7 @@ import copy
 import numpy as np
 import scipy.ndimage as ndi
 import scipy.interpolate as itp
-import cv2.cv2 as cv
+import cv2 as cv
 import warnings
 
 """Function list:

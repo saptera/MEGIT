@@ -7,7 +7,7 @@ import h5py as h5
 import zlib
 import hashlib
 import numpy as np
-import cv2.cv2 as cv
+import cv2 as cv
 import warnings
 
 """Function list:
