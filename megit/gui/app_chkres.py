@@ -297,11 +297,12 @@ class CrossVerifier(QtWidgets.QMainWindow, Ui_CrossVerifier):
             self.__set_single_frame(key, 1)
 
     def __intelligent_mode_single_false(self):
-        global curr_frm
+        global curr_frm, res
         key = self.__check_current_frame(curr_frm, False)
         if key:
             for k in ['gap', 'top', 'btm']:
-                self.__set_single_frame(k, 0)
+                if res[k][curr_frm] == 1:
+                    self.__set_single_frame(k, 0)
 
     def __intelligent_mode_range_start(self, flag):
         global curr_frm
