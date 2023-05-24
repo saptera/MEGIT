@@ -164,15 +164,13 @@ def read_crscsv_set(crs_csv):
     res = {'frm': [], 'gap': [], 'top': [], 'btm': []}  # INIT VAR
     with open(crs_csv, 'r', newline='') as csvfile:
         reader = csv.reader(csvfile)
-        idx = 0
-        for row in reader:
+        for idx, row in enumerate(reader):
             if idx > 0:  # Escape header
                 # Get object test crossings
                 res['frm'].append(int(row[0]))
                 res['gap'].append(int(row[1]))
                 res['top'].append(int(row[2]))
                 res['btm'].append(int(row[3]))
-            idx += 1
     return res
 
 
@@ -193,8 +191,7 @@ def read_crscsv_mrg(crs_csv):
     byj = {'frm': [], 'gap': [], 'top': [], 'btm': []}  # INIT VAR
     with open(crs_csv, 'r', newline='') as csvfile:
         reader = csv.reader(csvfile)
-        idx = 0
-        for row in reader:
+        for idx, row in enumerate(reader):
             if idx > 1:  # Escape header
                 # Get object test crossings
                 obj['frm'].append(int(row[0]))
@@ -211,5 +208,4 @@ def read_crscsv_mrg(crs_csv):
                 byj['gap'].append(int(row[8]))
                 byj['top'].append(0)
                 byj['btm'].append(0)
-            idx += 1
     return obj, juv, byj
