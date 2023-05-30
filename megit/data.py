@@ -12,9 +12,9 @@ import warnings
     brt_con(img, brt=0, con=0): Adjust image brightness and contrast.
     draw_text(img, text, x=0, y=0, scale=1, color='w', has_bkg=True, background='b'): Put text with background.
   # Label data structure conversion functions
-    conv_hm2js_max(hml_data, th): Convert JSON type label to HeatMap type label with global maximum.
+    conv_hm2js_max(hml_data, th): Convert HeatMap type label to RawJSON type label with global maximum.
     get_lbl_det(area, circularity, inertia, convexity): Generate a detector for extracting blobs from 2D matrix.
-    conv_hm2js_blob(hml_data, detector): Convert JSON type label to HeatMap type label with simple blob detector.
+    conv_hm2js_blob(hml_data, detector): Convert HeatMap type label to RawJSON type label with simple blob detector.
     det_elp_lbl(hml_data): Detect HeatMap label position with ellipse detector.
     arr_raw_jsl(jsl_data, lbl_key): Arrange raw HeatMap converted JSON labels.
   # Label data plotting functions
@@ -114,7 +114,7 @@ def draw_text(img, text, x=0, y=0, scale=1, color=(255, 255, 255), has_bkg=True,
 # Label data structure conversion functions -------------------------------------------------------------------------- #
 
 def conv_hm2js_max(hml_data, th):
-    """ Convert JSON type label to HeatMap type label with global maximum.
+    """ Convert HeatMap type label to RawJSON type label with global maximum.
 
     Args:
         hml_data (dict[str, np.ndarray]): HeatMap format prediction label
@@ -172,7 +172,7 @@ def get_lbl_det(area, circularity, inertia, convexity):
 
 
 def conv_hm2js_blob(hml_data, detector):
-    """ Convert JSON type label to HeatMap type label with simple blob detector.
+    """ Convert HeatMap type label to RawJSON type label with simple blob detector.
 
     Args:
         hml_data (dict[str, np.ndarray]): HeatMap format prediction label
