@@ -514,7 +514,7 @@ class Ui_CrossVerifier(object):
         font = QtGui.QFont()
         font.setPointSize(12)
         self.sldrValue.setFont(font)
-        self.sldrValue.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.sldrValue.setFocusPolicy(QtCore.Qt.ClickFocus)
         self.sldrValue.setMaximum(35999)
         self.sldrValue.setObjectName("sldrValue")
         self.frmsldrLayout.addWidget(self.sldrValue)

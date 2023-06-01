@@ -1260,7 +1260,7 @@
          </font>
         </property>
         <property name="focusPolicy">
-         <enum>Qt::NoFocus</enum>
+         <enum>Qt::ClickFocus</enum>
         </property>
         <property name="maximum">
          <number>35999</number>
