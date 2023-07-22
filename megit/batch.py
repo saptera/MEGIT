@@ -81,8 +81,8 @@ def det_avgint(roi_int, th_grd=5, th_cns=10, disp=(True, 4)):
 
     Args:
         roi_int (dict[str, list[int]]): Mean intensity of ROIs, keys = {'gap', 'top', 'btm'}
-        th_grd (int or float): Threshold for greedy no-false-negative detection (default: 5)
-        th_cns (int or float): Threshold for conservative no-false-positive detection (default: 10)
+        th_grd (int or float or tuple[int or float, int or float, int or float]): No-false-negative limits (default: 5)
+        th_cns (int or float or tuple[int or float, int or float, int or float]): No-false-positive limits (default: 10)
         disp (tuple[bool, int]): Process print control, flag and indention (default: (True, 4))
 
     Returns:
@@ -90,6 +90,27 @@ def det_avgint(roi_int, th_grd=5, th_cns=10, disp=(True, 4)):
             - grd (dict[str, list[int]]): Greedy threshold detection results, keys = {'gap', 'top', 'btm'}
             - cns (dict[str, list[int]]): Conservative threshold detection, keys = {'gap', 'top', 'btm'}
     """
+    # Check greedy threshold input
+    if type(th_grd) == int or type(th_grd) == float:
+        grd_ths = {'gap': th_grd, 'top': th_grd, 'btm': th_grd}
+    elif type(th_grd) == list or type(th_grd) == tuple:
+        if len(th_grd) == 3:
+            grd_ths = {'gap': th_grd[0], 'top': th_grd[1], 'btm': th_grd[2]}
+        else:
+            raise ValueError("List of greedy thresholds must have a length of 3")
+    else:
+        raise TypeError("Greedy threshold must be a scalar or a iterable of length 3")
+    # Check conservative threshold input
+    if type(th_cns) == int or type(th_cns) == float:
+        cns_ths = {'gap': th_cns, 'top': th_cns, 'btm': th_cns}
+    elif type(th_cns) == list or type(th_cns) == tuple:
+        if len(th_cns) == 3:
+            cns_ths = {'gap': th_cns[0], 'top': th_cns[1], 'btm': th_cns[2]}
+        else:
+            raise ValueError("List of conservative thresholds must have a length of 3")
+    else:
+        raise TypeError("Conservative threshold must be a scalar or a iterable of length 3")
+    # Get display settings
     disp_prt = disp[0]
     disp_ind = 0 if disp[1] < 0 else disp[1]
     # Assign data
@@ -98,15 +119,15 @@ def det_avgint(roi_int, th_grd=5, th_cns=10, disp=(True, 4)):
     btm_avg = np.asarray(roi_int['btm'], dtype=np.float32)
     # Greedy detection
     disp_prt and print("%sComputing cross with greedy threshold" % (' ' * disp_ind))
-    gap_det_grd = np.where(gap_avg > max(gap_avg) - th_grd, 0, 1).tolist()
-    top_det_grd = np.where(top_avg > max(top_avg) - th_grd, 0, 1).tolist()
-    btm_det_grd = np.where(btm_avg > max(btm_avg) - th_grd, 0, 1).tolist()
+    gap_det_grd = np.where(gap_avg > max(gap_avg) - grd_ths['gap'], 0, 1).tolist()
+    top_det_grd = np.where(top_avg > max(top_avg) - grd_ths['top'], 0, 1).tolist()
+    btm_det_grd = np.where(btm_avg > max(btm_avg) - grd_ths['btm'], 0, 1).tolist()
     grd = {'gap': gap_det_grd, 'top': top_det_grd, 'btm': btm_det_grd}
     # Conservative detection
     disp_prt and print("%sComputing cross with conservative threshold" % (' ' * disp_ind))
-    gap_det_cns = np.where(gap_avg > max(gap_avg) - th_cns, 0, 1).tolist()
-    top_det_cns = np.where(top_avg > max(top_avg) - th_cns, 0, 1).tolist()
-    btm_det_cns = np.where(btm_avg > max(btm_avg) - th_cns, 0, 1).tolist()
+    gap_det_cns = np.where(gap_avg > max(gap_avg) - cns_ths['gap'], 0, 1).tolist()
+    top_det_cns = np.where(top_avg > max(top_avg) - cns_ths['top'], 0, 1).tolist()
+    btm_det_cns = np.where(btm_avg > max(btm_avg) - cns_ths['btm'], 0, 1).tolist()
     cns = {'gap': gap_det_cns, 'top': top_det_cns, 'btm': btm_det_cns}
     return grd, cns
 
