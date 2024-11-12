@@ -5,12 +5,12 @@ import h5py as h5
 import math
 import numpy as np
 import cv2 as cv
-from megit.data import get_frm, brt_con, draw_text
-from megit.utils import mk_outdir
+from ..data import get_frm, brt_con, draw_text
+from ..utils import mk_outdir
 from PySide6 import QtCore, QtGui, QtWidgets
-from megit.gui.dgn_preproco_ctrl import Ui_ControlViewer
-from megit.gui.dgn_preproc_frmv import Ui_FrameViewer
-from megit.gui.dgn_preproc_load import Ui_MainLoader
+from .dgn_preproco_ctrl import Ui_ControlViewer
+from .dgn_preproc_frmv import Ui_FrameViewer
+from .dgn_preproc_load import Ui_MainLoader
 
 
 # Global definitions  -----------------------------------------------------------------------------------------------  #

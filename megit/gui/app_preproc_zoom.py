@@ -1,10 +1,10 @@
 import os
 import cv2 as cv
-from megit.data import get_frm, brt_con, draw_text
+from ..data import get_frm, brt_con, draw_text
 from PySide6 import QtCore, QtGui, QtWidgets
-from megit.gui.dgn_preprocz_ctrl import Ui_ControlViewer
-from megit.gui.dgn_preproc_frmv import Ui_FrameViewer
-from megit.gui.dgn_preproc_load import Ui_MainLoader
+from .dgn_preprocz_ctrl import Ui_ControlViewer
+from .dgn_preproc_frmv import Ui_FrameViewer
+from .dgn_preproc_load import Ui_MainLoader
 
 
 # Global definitions  -----------------------------------------------------------------------------------------------  #

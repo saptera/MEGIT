@@ -5,11 +5,11 @@ import csv
 import h5py as h5
 import numpy as np
 import cv2 as cv
-from megit.fio import cjsh_read, read_roi_poly, read_crscsv_set
-from megit.data import draw_text, hml_plt, jsl_plt
+from ..fio import cjsh_read, read_roi_poly, read_crscsv_set
+from ..data import draw_text, hml_plt, jsl_plt
 from PySide6 import QtCore, QtGui, QtWidgets
-from megit.gui.dgn_chkres_load import Ui_MainLoader
-from megit.gui.dgn_chkres_ctrl import Ui_CrossVerifier
+from .dgn_chkres_load import Ui_MainLoader
+from .dgn_chkres_ctrl import Ui_CrossVerifier
 
 
 # Global definitions  -----------------------------------------------------------------------------------------------  #

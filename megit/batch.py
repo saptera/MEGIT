@@ -3,10 +3,10 @@ import json
 import h5py as h5
 import numpy as np
 from shapely.geometry import Point, Polygon
-from megit.fio import hml_read, cjsh_read
-from megit.data import get_lbl_det, conv_hm2js_blob, conv_hm2js_max, arr_raw_jsl, get_proc_rng, pad_nan, sel_mtp, \
-    flt_spl_frm, lin2p, poly_lin_poschk, poly_area_poschk, get_frm_gap, crs_det_frm
-from megit.utils import prog_print
+from .fio import hml_read, cjsh_read
+from .data import (get_lbl_det, conv_hm2js_blob, conv_hm2js_max, arr_raw_jsl, get_proc_rng, pad_nan, sel_mtp,
+                   flt_spl_frm, lin2p, poly_lin_poschk, poly_area_poschk, get_frm_gap, crs_det_frm)
+from .utils import prog_print
 
 """Function list:
     avgint_roi(roi_js, im_hdf, im_ext='png', disp=(True, 4)): Compute average intensity of ROIs.

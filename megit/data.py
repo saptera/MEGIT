@@ -1,4 +1,3 @@
-import math
 import copy
 import numpy as np
 import scipy.ndimage as ndi
@@ -80,7 +79,7 @@ def brt_con(img, brt=0, con=0):
     """
     ha = 127.5 * (1 - brt / 255)
     hb = 127.5 * (1 + brt / 255)
-    k = math.tan((45 + 44 * con / 255) / 180 * math.pi)
+    k = np.tan((45 + 44 * con / 255) / 180 * np.pi)
     adj = np.add(np.multiply(np.subtract(img, ha), k), hb)
     out = np.clip(adj, 0, 255).astype('uint8')
     return out
