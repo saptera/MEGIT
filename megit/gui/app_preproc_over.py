@@ -7,7 +7,7 @@ import numpy as np
 import cv2 as cv
 from megit.data import get_frm, brt_con, draw_text
 from megit.utils import mk_outdir
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 from megit.gui.dgn_preproco_ctrl import Ui_ControlViewer
 from megit.gui.dgn_preproc_frmv import Ui_FrameViewer
 from megit.gui.dgn_preproc_load import Ui_MainLoader
@@ -16,13 +16,13 @@ from megit.gui.dgn_preproc_load import Ui_MainLoader
 # Global definitions  -----------------------------------------------------------------------------------------------  #
 # Define a class to handle cross window signals
 class ComSig(QtCore.QObject):
-    win_stat_sig = QtCore.pyqtSignal(QtCore.Qt.WindowStates)  # Cross window state settings
-    frm_ctrl_sig = QtCore.pyqtSignal(int)  # Frame selection operation synchronizer
-    frm_info_sig = QtCore.pyqtSignal(int, str)  # Current frame information messenger
-    mkr_disp_sig = QtCore.pyqtSignal()  # Marker display messenger
-    mkr_ctrl_sig = QtCore.pyqtSignal()  # Marker group control operation messenger
-    mkr_updt_sig = QtCore.pyqtSignal(int)  # Marker item group updating messenger
-    mkr_info_sig = QtCore.pyqtSignal(int, int, str)  # Current marker information messenger
+    win_stat_sig = QtCore.Signal(QtCore.Qt.WindowStates)  # Cross window state settings
+    frm_ctrl_sig = QtCore.Signal(int)  # Frame selection operation synchronizer
+    frm_info_sig = QtCore.Signal(int, str)  # Current frame information messenger
+    mkr_disp_sig = QtCore.Signal()  # Marker display messenger
+    mkr_ctrl_sig = QtCore.Signal()  # Marker group control operation messenger
+    mkr_updt_sig = QtCore.Signal(int)  # Marker item group updating messenger
+    mkr_info_sig = QtCore.Signal(int, int, str)  # Current marker information messenger
 
 
 # Define global control variables
@@ -105,8 +105,8 @@ def update_roi_group(frm_idx):
 
 # Main process worker class  ----------------------------------------------------------------------------------------  #
 class ProcWorker(QtCore.QObject):
-    finished = QtCore.pyqtSignal()
-    progress = QtCore.pyqtSignal(int)
+    finished = QtCore.Signal()
+    progress = QtCore.Signal(int)
 
     def run(self):
         global out_dir, vid_cap, brt, con, exp_typ, frm_dig, frm_num, frm_list, roi_id, roi_data,\

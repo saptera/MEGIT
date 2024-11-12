@@ -1,7 +1,7 @@
 import os
 import cv2 as cv
 from megit.data import get_frm, brt_con, draw_text
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 from megit.gui.dgn_preprocz_ctrl import Ui_ControlViewer
 from megit.gui.dgn_preproc_frmv import Ui_FrameViewer
 from megit.gui.dgn_preproc_load import Ui_MainLoader
@@ -10,8 +10,8 @@ from megit.gui.dgn_preproc_load import Ui_MainLoader
 # Global definitions  -----------------------------------------------------------------------------------------------  #
 # Define a class to handle cross window signals
 class ComSig(QtCore.QObject):
-    frm_ctrl_sig = QtCore.pyqtSignal(int)  # Frame selection operation synchronizer
-    frm_info_sig = QtCore.pyqtSignal(int, str)  # Current frame information messenger
+    frm_ctrl_sig = QtCore.Signal(int)  # Frame selection operation synchronizer
+    frm_info_sig = QtCore.Signal(int, str)  # Current frame information messenger
 
 
 # Define global control variables
@@ -37,8 +37,8 @@ flp = None  # Frame flipping value
 
 # Main process worker class  ----------------------------------------------------------------------------------------  #
 class ProcWorker(QtCore.QObject):
-    finished = QtCore.pyqtSignal()
-    progress = QtCore.pyqtSignal(int)
+    finished = QtCore.Signal()
+    progress = QtCore.Signal(int)
 
     def run(self):
         global out_dir, vid_cap, brt, con, txt_mark, txt_linc, txt_hbkg, txt_bkgc, txt_size, txt_xval, txt_yval, flp

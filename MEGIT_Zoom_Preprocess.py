@@ -1,8 +1,10 @@
 import sys
-from PyQt5 import QtWidgets
+from PySide6 import QtWidgets
 from megit.gui.app_preproc_zoom import MainLoader
 
-app = QtWidgets.QApplication(sys.argv)
-window = MainLoader()
-window.show()
-app.exec_()
+
+if __name__ == '__main__':
+    app = QtWidgets.QApplication(sys.argv)
+    window = MainLoader()
+    window.show()
+    app.exec()
