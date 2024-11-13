@@ -1,3 +1,6 @@
+# MEGIT cross detection batch processing script
+# This script will process ALL subfolders
+
 import sys
 import os
 sys.path.append(os.getcwd())

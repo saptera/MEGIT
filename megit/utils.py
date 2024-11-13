@@ -1,3 +1,5 @@
+# MEGIT utility and helper functions
+
 import sys
 import os
 

@@ -1,3 +1,5 @@
+# MEGIT batch process (video based) functions
+
 import copy
 import json
 import h5py as h5

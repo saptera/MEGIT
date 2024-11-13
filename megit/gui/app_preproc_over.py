@@ -1,3 +1,5 @@
+# MEGIT overview preprocess GUI
+
 import os
 import copy
 import json

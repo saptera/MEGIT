@@ -1,3 +1,6 @@
+# MEGIT model inference related functions
+# Refer to OptiFlex package (https://github.com/saptera/OptiFlex) for more information
+
 import os
 import numpy as np
 import cv2 as cv

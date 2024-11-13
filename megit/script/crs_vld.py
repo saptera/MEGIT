@@ -1,3 +1,5 @@
+# MEGIT manual cross validation GUI caller
+
 import sys
 import os
 sys.path.append(os.getcwd())

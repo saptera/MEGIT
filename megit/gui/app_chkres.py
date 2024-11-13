@@ -1,3 +1,5 @@
+# MEGIT manual cross validation GUI
+
 import os
 import copy
 import tempfile

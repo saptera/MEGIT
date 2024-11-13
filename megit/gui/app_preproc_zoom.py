@@ -1,3 +1,5 @@
+# MEGIT zoomview preprocess GUI
+
 import os
 import cv2 as cv
 from ..data import get_frm, brt_con, draw_text
