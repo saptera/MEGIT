@@ -1,6 +1,9 @@
 import sys
+import os
+sys.path.append(os.getcwd())
+
 from PySide6 import QtWidgets
-from megit.gui.app_preproc_zoom import MainLoader
+from megit.gui.app_preproc_over import MainLoader
 
 
 if __name__ == '__main__':
