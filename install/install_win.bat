@@ -9,17 +9,19 @@ ECHO (__   _____________________________   __)
 ECHO    ^| ^|                             ^| ^|
 ECHO.
 
+:: Set Python interpreter path
+SET pyBin=python
 :: Set valid Python version range [incusive, exclusive)
 SET minVersion=3.9.0
-SET maxVersion=5.0.0
+SET maxVersion=9.9.9
 
 :: Check Python installation
-python -V 2>NUL
+%pyBin% -V 2>NUL
 IF errorLevel 1 GOTO errorNoPython
 :: Check Python version
 CALL :parsePythonVersion %minVersion%, parMinVer
 CALL :parsePythonVersion %maxVersion%, parMaxVer
-FOR /F "tokens=2 USEBACKQ DELIMS= " %%F IN (`python -V`) DO (SET version=%%F)
+FOR /F "tokens=2 USEBACKQ DELIMS= " %%F IN (`%pyBin% -V`) DO (SET version=%%F)
 CALL :parsePythonVersion %version%, parVer
 IF %parVer% LSS %parMinVer% (
     ECHO Version too low, Python ^>^=%minVersion% required.
@@ -37,16 +39,16 @@ PAUSE >NUL
 ECHO ----------------------------------------
 
 :: Update PIP
-python -m pip install --upgrade pip
+%pyBin% -m pip install --upgrade pip
 
 :: Install required packages
-python -m pip install numpy
-python -m pip install scipy
-python -m pip install opencv-python
-python -m pip install shapely
-python -m pip install matplotlib
-python -m pip install h5py
-python -m pip install PySide6
+%pyBin% -m pip install numpy
+%pyBin% -m pip install scipy
+%pyBin% -m pip install opencv-python
+%pyBin% -m pip install shapely
+%pyBin% -m pip install matplotlib
+%pyBin% -m pip install h5py
+%pyBin% -m pip install PySide6
 
 ECHO ----------------------------------------
 ECHO.
